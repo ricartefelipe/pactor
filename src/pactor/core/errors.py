@@ -67,3 +67,15 @@ class TenantContextMissingError(PactorError):
 
     code = "tenant_context_missing"
     http_status = 403
+
+
+class IdempotencyConflictError(ConflictError):
+    """Chave de idempotência reutilizada com conteúdo diferente ou em andamento."""
+
+    code = "idempotency_conflict"
+
+
+class MfaRequiredError(AccessDeniedError):
+    """Operação privilegiada exige autenticação multifator concluída na sessão."""
+
+    code = "mfa_required"
