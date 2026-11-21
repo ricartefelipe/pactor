@@ -1,0 +1,160 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main, develop]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  UV_VERSION: "0.13.9"
+  PYTHON_VERSION: "3.13"
+  PACTOR_ENVIRONMENT: test
+
+jobs:
+  quality:
+    name: Qualidade (lockfile, Ruff, mypy, migrations)
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: astral-sh/setup-uv@1db35dd8eee11c5894872e0b383ae6c406cf738d # v10.4.0
+        with:
+          version: ${{ env.UV_VERSION }}
+          python-version: ${{ env.PYTHON_VERSION }}
+      - name: Lockfile consistente com o pyproject
+        run: uv lock --check
+      - name: Instalar dependências do lockfile
+        run: uv sync --frozen
+      - name: Ruff (lint)
+        run: uv run ruff check --output-format=github .
+      - name: Ruff (formatação)
+        run: uv run ruff format --check .
+      - name: mypy
+        run: uv run mypy
+      - name: Migrations ausentes
+        run: uv run python manage.py makemigrations --check --dry-run
+
+  security:
+    name: Segurança (pip-audit, Bandit, segredos)
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+      - uses: astral-sh/setup-uv@1db35dd8eee11c5894872e0b383ae6c406cf738d # v10.4.0
+        with:
+          version: ${{ env.UV_VERSION }}
+          python-version: ${{ env.PYTHON_VERSION }}
+      - run: uv sync --frozen
+      - name: pip-audit (dependências de produção com hashes)
+        run: |
+          mkdir -p var
+          uv export --frozen --no-dev --no-emit-project --format requirements-txt > var/requirements-audit.txt
+          uv run pip-audit --strict --disable-pip --require-hashes --requirement var/requirements-audit.txt
+      - name: Bandit
+        run: uv run bandit -c pyproject.toml -r src
+      - name: Verificação de segredos (gitleaks)
+        env:
+          GITLEAKS_VERSION: "8.30.1"
+        run: |
+          base="https://github.com/gitleaks/gitleaks/releases/download/v${GITLEAKS_VERSION}"
+          curl -fsSLO "${base}/gitleaks_${GITLEAKS_VERSION}_linux_x64.tar.gz"
+          curl -fsSLO "${base}/gitleaks_${GITLEAKS_VERSION}_checksums.txt"
+          grep "gitleaks_${GITLEAKS_VERSION}_linux_x64.tar.gz" "gitleaks_${GITLEAKS_VERSION}_checksums.txt" | sha256sum --check --strict
+          tar -xzf "gitleaks_${GITLEAKS_VERSION}_linux_x64.tar.gz" gitleaks
+          ./gitleaks git --redact --verbose --exit-code 1 .
+
+  unit:
+    name: Testes unitários (sem infraestrutura)
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: astral-sh/setup-uv@1db35dd8eee11c5894872e0b383ae6c406cf738d # v10.4.0
+        with:
+          version: ${{ env.UV_VERSION }}
+          python-version: ${{ env.PYTHON_VERSION }}
+      - run: uv sync --frozen
+      - name: pytest -m unit (sem PostgreSQL, RabbitMQ ou Redis disponíveis)
+        env:
+          POSTGRES_HOST: 127.0.0.1
+          POSTGRES_PORT: "1"
+          CELERY_BROKER_URL: amqp://unused:unused@127.0.0.1:1/unused
+          REDIS_URL: redis://127.0.0.1:1/0
+        run: uv run pytest -m unit
+
+  integration:
+    name: Testes de integração e cobertura (PostgreSQL, RabbitMQ, Redis)
+    runs-on: ubuntu-24.04
+    services:
+      postgres:
+        image: postgres:17.12-alpine3.24
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: postgres
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U postgres" --health-interval 5s --health-timeout 3s --health-retries 20
+      rabbitmq:
+        image: rabbitmq:4.2.9-management-alpine
+        env:
+          RABBITMQ_DEFAULT_USER: pactor
+          RABBITMQ_DEFAULT_PASS: pactor-local
+          RABBITMQ_DEFAULT_VHOST: pactor
+        ports: ["5672:5672"]
+        options: >-
+          --health-cmd "rabbitmq-diagnostics -q ping" --health-interval 10s --health-timeout 5s --health-retries 12
+      redis:
+        image: redis:8.2.11-alpine
+        ports: ["6379:6379"]
+        options: >-
+          --health-cmd "redis-cli ping" --health-interval 5s --health-timeout 3s --health-retries 20
+    env:
+      POSTGRES_HOST: localhost
+      POSTGRES_USER: pactor_owner
+      POSTGRES_PASSWORD: owner-local
+      PACTOR_APP_PASSWORD: app-local
+      CELERY_BROKER_URL: amqp://pactor:pactor-local@localhost:5672/pactor
+      REDIS_URL: redis://localhost:6379/0
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: astral-sh/setup-uv@1db35dd8eee11c5894872e0b383ae6c406cf738d # v10.4.0
+        with:
+          version: ${{ env.UV_VERSION }}
+          python-version: ${{ env.PYTHON_VERSION }}
+      - run: uv sync --frozen
+      - name: Criar papéis do PostgreSQL (mesmo script do Compose)
+        env:
+          PGHOST: localhost
+          PGPASSWORD: postgres
+          POSTGRES_USER: postgres
+          PACTOR_OWNER_PASSWORD: owner-local
+          PACTOR_APP_PASSWORD: app-local
+        run: sh docker/postgres/10-roles.sh
+      - name: Migrations em banco limpo
+        run: uv run python manage.py migrate --noinput
+      - name: pytest com cobertura
+        run: |
+          mkdir -p var
+          uv run pytest -n 4 --cov --cov-report=term --cov-report=json:var/coverage.json
+      - name: Gates de cobertura por escopo
+        run: uv run python scripts/check_coverage.py var/coverage.json
+
+  image:
+    name: Build e análise da imagem
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Build
+        run: docker build --tag pactor:ci .
+      - name: Trivy (vulnerabilidades HIGH/CRITICAL com correção disponível)
+        run: >-
+          docker run --rm -v /var/run/docker.sock:/var/run/docker.sock
+          aquasec/trivy:0.76.1 image --exit-code 1 --severity HIGH,CRITICAL
+          --ignore-unfixed --scanners vuln pactor:ci
