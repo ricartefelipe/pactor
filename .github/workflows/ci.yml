@@ -115,6 +115,9 @@ jobs:
         ports: ["6379:6379"]
         options: >-
           --health-cmd "redis-cli ping" --health-interval 5s --health-timeout 3s --health-retries 20
+      mailpit:
+        image: axllent/mailpit:v1.34.0
+        ports: ["1025:1025", "8025:8025"]
     env:
       POSTGRES_HOST: localhost
       POSTGRES_USER: pactor_owner
@@ -122,6 +125,8 @@ jobs:
       PACTOR_APP_PASSWORD: app-local
       CELERY_BROKER_URL: amqp://pactor:pactor-local@localhost:5672/pactor
       REDIS_URL: redis://localhost:6379/0
+      EMAIL_HOST: localhost
+      EMAIL_PORT: "1025"
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: astral-sh/setup-uv@1db35dd8eee11c5894872e0b383ae6c406cf738d # v10.4.0
@@ -139,10 +144,12 @@ jobs:
         run: sh docker/postgres/10-roles.sh
       - name: Migrations em banco limpo
         run: uv run python manage.py migrate --noinput
-      - name: pytest com cobertura
+      - name: pytest (persistência, casos de uso, HTTP, concorrência)
+        run: uv run pytest -n 4 -m "not infra" --cov --cov-report=
+      - name: pytest com worker Celery real (RabbitMQ, Redis, Mailpit)
         run: |
           mkdir -p var
-          uv run pytest -n 4 --cov --cov-report=term --cov-report=json:var/coverage.json
+          uv run pytest -m infra --cov --cov-append --cov-report=term --cov-report=json:var/coverage.json
       - name: Gates de cobertura por escopo
         run: uv run python scripts/check_coverage.py var/coverage.json
 

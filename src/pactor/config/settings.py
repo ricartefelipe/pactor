@@ -9,7 +9,13 @@ from __future__ import annotations
 
 from pathlib import Path
 
+import django_stubs_ext
+
 from pactor.config.env import ConfigurationError, env_bool, env_int, env_list, env_str
+
+# Torna classes genéricas do Django (ex.: ModelAdmin[Model]) subscritáveis
+# em tempo de execução, conforme os stubs usados na verificação de tipos.
+django_stubs_ext.monkeypatch()
 
 BASE_DIR = Path(__file__).resolve().parents[3]
 
@@ -36,10 +42,17 @@ INSTALLED_APPS = [
     "django.contrib.staticfiles",
     "django.contrib.postgres",
     "rest_framework",
-    "django_filters",
     "drf_spectacular",
+    "allauth",
+    "allauth.account",
+    "allauth.mfa",
+    "allauth.headless",
+    "allauth.usersessions",
     "pactor.core",
     "pactor.identity",
+    "pactor.plans",
+    "pactor.audit",
+    "pactor.notifications",
 ]
 
 MIDDLEWARE = [
@@ -52,6 +65,9 @@ MIDDLEWARE = [
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
+    "csp.middleware.CSPMiddleware",
+    "allauth.account.middleware.AccountMiddleware",
+    "allauth.usersessions.middleware.UserSessionsMiddleware",
 ]
 
 ROOT_URLCONF = "pactor.config.urls"
@@ -89,6 +105,9 @@ DATABASES = {
         "CONN_MAX_AGE": env_int("POSTGRES_CONN_MAX_AGE", 60),
         "CONN_HEALTH_CHECKS": True,
         "OPTIONS": {"application_name": "pactor"},
+        # Cada requisição é uma transação: o vínculo de tenant (set_config
+        # local) e a outbox ficam atômicos com as alterações de negócio.
+        "ATOMIC_REQUESTS": True,
         "TEST": {"NAME": env_str("POSTGRES_TEST_DB", "test_pactor")},
     },
 }
@@ -129,6 +148,43 @@ AUTH_PASSWORD_VALIDATORS = [
     {"NAME": "django.contrib.auth.password_validation.NumericPasswordValidator"},
 ]
 
+AUTHENTICATION_BACKENDS = [
+    "allauth.account.auth_backends.AuthenticationBackend",
+]
+
+# django-allauth: login por e-mail, confirmação obrigatória, MFA (TOTP) e
+# API headless apenas para o cliente de navegador (sessão + CSRF, sem tokens
+# expostos ao JavaScript).
+ACCOUNT_LOGIN_METHODS = {"email"}
+ACCOUNT_SIGNUP_FIELDS = ["email*", "password1*", "password2*"]
+ACCOUNT_USER_MODEL_USERNAME_FIELD = None
+ACCOUNT_EMAIL_VERIFICATION = "mandatory"
+ACCOUNT_UNIQUE_EMAIL = True
+ACCOUNT_PREVENT_ENUMERATION = True
+ACCOUNT_LOGOUT_ON_PASSWORD_CHANGE = True
+ACCOUNT_EMAIL_SUBJECT_PREFIX = "[Pactor] "
+ACCOUNT_RATE_LIMITS = {
+    "login": "30/m/ip",
+    "login_failed": "10/m/ip,5/5m/key",
+    "signup": "10/h/ip",
+    # Bandit B105: "reset_password" nomeia um limite de taxa, não uma credencial.
+    "reset_password": "10/m/ip,5/m/key",  # nosec B105
+    "confirm_email": "1/3m/key",
+}
+HEADLESS_ONLY = True
+HEADLESS_CLIENTS = ("browser",)
+HEADLESS_FRONTEND_URLS = {
+    "account_confirm_email": f"{PACTOR_PUBLIC_URL}/conta/confirmar-email/{{key}}",
+    "account_reset_password_from_key": f"{PACTOR_PUBLIC_URL}/conta/redefinir-senha/{{key}}",
+    "account_signup": f"{PACTOR_PUBLIC_URL}/cadastro",
+}
+MFA_SUPPORTED_TYPES = ["totp", "recovery_codes"]
+MFA_TOTP_ISSUER = "Pactor"
+USERSESSIONS_TRACK_ACTIVITY = True
+
+# Plano atribuído a novas organizações (trial).
+PACTOR_TRIAL_PLAN = env_str("PACTOR_TRIAL_PLAN", "profissional")
+
 # Sessões no servidor; o cookie carrega apenas o identificador.
 SESSION_ENGINE = "django.contrib.sessions.backends.db"
 SESSION_COOKIE_NAME = "pactor_session"
@@ -155,6 +211,23 @@ SECURE_HSTS_INCLUDE_SUBDOMAINS = IS_PRODUCTION
 SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
 DATA_UPLOAD_MAX_MEMORY_SIZE = 2 * 1024 * 1024
 FILE_UPLOAD_MAX_MEMORY_SIZE = 2 * 1024 * 1024
+
+# Content Security Policy: somente recursos da própria origem.
+CONTENT_SECURITY_POLICY = {
+    "DIRECTIVES": {
+        "default-src": ["'self'"],
+        "script-src": ["'self'"],
+        "style-src": ["'self'"],
+        "img-src": ["'self'", "data:"],
+        "font-src": ["'self'"],
+        "connect-src": ["'self'"],
+        "frame-ancestors": ["'none'"],
+        "form-action": ["'self'"],
+        "base-uri": ["'self'"],
+        "object-src": ["'none'"],
+    },
+}
+PACTOR_ADMIN_PATH = env_str("PACTOR_ADMIN_PATH", "admin/")
 
 # ---------------------------------------------------------------------------
 # Internacionalização
@@ -188,7 +261,6 @@ REST_FRAMEWORK = {
     "DEFAULT_RENDERER_CLASSES": ["rest_framework.renderers.JSONRenderer"],
     "DEFAULT_PARSER_CLASSES": ["rest_framework.parsers.JSONParser"],
     "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
-    "DEFAULT_FILTER_BACKENDS": ["django_filters.rest_framework.DjangoFilterBackend"],
     "EXCEPTION_HANDLER": "pactor.core.api.errors.exception_handler",
     "DEFAULT_THROTTLE_CLASSES": [
         "rest_framework.throttling.AnonRateThrottle",
@@ -223,6 +295,12 @@ CELERY_TASK_SOFT_TIME_LIMIT = env_int("PACTOR_TASK_SOFT_TIME_LIMIT", 240)
 CELERY_BROKER_CONNECTION_RETRY_ON_STARTUP = True
 CELERY_TASK_DEFAULT_QUEUE = "default"
 CELERY_TIMEZONE = TIME_ZONE
+CELERY_TASK_ROUTES = {
+    "pactor.core.relay_outbox": {"queue": "default"},
+}
+CELERY_BEAT_SCHEDULE = {
+    "relay-outbox": {"task": "pactor.core.relay_outbox", "schedule": 10.0},
+}
 
 # ---------------------------------------------------------------------------
 # E-mail

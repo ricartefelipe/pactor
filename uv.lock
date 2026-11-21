@@ -460,18 +460,6 @@ wheels = [
 ]
 
 [[package]]
-name = "django-filter"
-version = "26.2"
-source = { registry = "https://pypi.org/simple" }
-dependencies = [
-    { name = "django" },
-]
-sdist = { url = "https://files.pythonhosted.org/packages/07/ee/c0f950fe24f3e0b69d054ad957f9229632b50bdc78e968f966d8b4efe16a/django_filter-26.2.tar.gz", hash = "sha256:fd5cc83995fbe9f5f07fb5dcda16fde0f04de1ecf8ef82628b6c0ec921b751af", size = 144828, upload-time = "2026-10-03T12:01:01.007Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/4a/92/6b098caa5b980a9d13a8db4825b7670410fa572e9195e39648f7700f2a37/django_filter-26.2-py3-none-any.whl", hash = "sha256:df8f737841d6359df00b84dda9b5ab59067fe60292091f1bdae1e3e6281cedb0", size = 94077, upload-time = "2026-10-03T12:00:59.162Z" },
-]
-
-[[package]]
 name = "django-oauth-toolkit"
 version = "3.4.1"
 source = { registry = "https://pypi.org/simple" }
@@ -1003,8 +991,8 @@ dependencies = [
     { name = "django" },
     { name = "django-allauth", extra = ["headless", "mfa"] },
     { name = "django-csp" },
-    { name = "django-filter" },
     { name = "django-oauth-toolkit" },
+    { name = "django-stubs-ext" },
     { name = "djangorestframework" },
     { name = "drf-spectacular" },
     { name = "gunicorn" },
@@ -1026,7 +1014,6 @@ dev = [
     { name = "bandit" },
     { name = "celery-types" },
     { name = "django-stubs" },
-    { name = "django-stubs-ext" },
     { name = "djangorestframework-stubs" },
     { name = "hypothesis" },
     { name = "mutmut" },
@@ -1047,8 +1034,8 @@ requires-dist = [
     { name = "django", specifier = "==5.2.19" },
     { name = "django-allauth", extras = ["headless", "mfa"], specifier = "==65.22.1" },
     { name = "django-csp", specifier = "==4.0" },
-    { name = "django-filter", specifier = "==26.2" },
     { name = "django-oauth-toolkit", specifier = "==3.4.1" },
+    { name = "django-stubs-ext", specifier = "==5.2.9" },
     { name = "djangorestframework", specifier = "==3.18.3" },
     { name = "drf-spectacular", specifier = "==0.30.0" },
     { name = "gunicorn", specifier = "==27.0.1" },
@@ -1070,7 +1057,6 @@ dev = [
     { name = "bandit", specifier = "==1.9.4" },
     { name = "celery-types", specifier = "==0.26.0" },
     { name = "django-stubs", specifier = "==5.2.9" },
-    { name = "django-stubs-ext", specifier = "==5.2.9" },
     { name = "djangorestframework-stubs", specifier = "==3.16.9" },
     { name = "hypothesis", specifier = "==6.170.17" },
     { name = "mutmut", specifier = "==3.8.1" },

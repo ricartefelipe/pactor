@@ -81,3 +81,58 @@ entrar um segundo colaborador, a exigência deve subir para pelo menos uma aprov
 ## ADR-010 — Arquivos de IDE fora do versionamento
 
 **Decisão.** `.idea/` é ignorado; configurações de IDE permanecem locais.
+
+## ADR-011 — RLS forçada com parâmetro local à transação
+
+**Contexto.** O isolamento não pode depender apenas de filtros na aplicação, de managers ou
+de `contextvars`.
+
+**Decisão.** Policies RLS comparam `organization_id` com `current_setting('pactor.tenant_id')`,
+definido com `set_config(..., true)` na transação. `FORCE ROW LEVEL SECURITY` aplica a regra
+até ao proprietário das tabelas. Requisições usam `ATOMIC_REQUESTS`; tasks usam `tenant_context`.
+
+**Consequências.** Cada requisição é uma transação; chamadas externas longas acontecem em tasks.
+Testes que trocam de organização usam `transactional_db` para exercitar commits reais.
+
+## ADR-012 — Outbox com reivindicação e publicação fora de transação
+
+**Decisão.** Ver "Processamento assíncrono" em `ARQUITETURA.md`. Mensagens Celery em JSON,
+`acks_late`, `task_reject_on_worker_lost`, `prefetch_multiplier=1`. Roteamento declarado em
+`pactor/config/events.py`.
+
+**Consequências.** Entrega pelo menos uma vez; deduplicação por consumidor. Nenhuma
+configuração isolada do broker é tratada como garantia de ausência de perda ou duplicidade.
+
+## ADR-013 — Idempotência por chave, escopo e fingerprint
+
+**Decisão.** `Idempotency-Key` + escopo da operação + ator + organização. O registro nasce na
+transação da operação (`INSERT ... ON CONFLICT DO NOTHING`); a segunda requisição concorrente
+aguarda o commit da primeira e recebe a resposta gravada, ou `idempotency_conflict` se o
+conteúdo for diferente.
+
+## ADR-014 — Convites com token derivado por HMAC
+
+**Decisão.** O link contém `organização.convite.HMAC(SECRET_KEY)`. Nada secreto vai ao banco ou
+à outbox; o consumidor de e-mail recalcula o token. A organização no token permite abrir o
+contexto de tenant antes de ler o convite.
+
+**Consequências.** Trocar `SECRET_KEY` invalida convites pendentes.
+
+## ADR-015 — Filtros de listagem explícitos, sem django-filter
+
+**Contexto.** Os stubs tipados do django-filter exigem a série de stubs do Django 6, incompatível
+com a LTS 5.2 adotada.
+
+**Decisão.** Cada listagem declara um serializer de filtros; parâmetros desconhecidos são
+rejeitados (`validation_failed`).
+
+## ADR-016 — MFA obrigatório para permissões privilegiadas
+
+**Decisão.** Permissões de gestão (membros, organização, cobrança, integrações, workflows,
+reprocessamento) exigem que a sessão tenha concluído MFA (registro de autenticação do
+django-allauth). Sem isso, a API responde `mfa_required`.
+
+## ADR-017 — django-allauth headless somente para navegador
+
+**Decisão.** `HEADLESS_ONLY` com cliente `browser`: sessão no servidor, cookie `HttpOnly` e CSRF
+em login/logout. O cliente `app` (tokens) fica desabilitado; nenhum token é exposto ao JavaScript.
