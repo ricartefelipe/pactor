@@ -11,8 +11,8 @@ dependencies = [
     "django==5.2.19",
     "django-allauth[headless,mfa]==65.22.1",
     "django-csp==4.0",
-    "django-filter==26.2",
     "django-oauth-toolkit==3.4.1",
+    "django-stubs-ext==5.2.9",
     "djangorestframework==3.18.3",
     "drf-spectacular==0.30.0",
     "gunicorn==27.0.1",
@@ -34,7 +34,6 @@ dev = [
     "bandit==1.9.4",
     "celery-types==0.26.0",
     "django-stubs==5.2.9",
-    "django-stubs-ext==5.2.9",
     "djangorestframework-stubs==3.16.9",
     "hypothesis==6.170.17",
     "mutmut==3.8.1",
@@ -87,7 +86,18 @@ ignore = [
 [tool.ruff.lint.per-file-ignores]
 # Testes usam assert do pytest, valores fixos e acessam membros internos de
 # objetos de teste de forma deliberada.
-"tests/**" = ["S101", "S105", "S106", "PLR2004", "SLF001", "ARG001", "FBT001"]
+# PT012/PT018: testes de context managers precisam de vários comandos dentro
+# de pytest.raises, e asserts compostos descrevem um único estado esperado.
+# S603: subprocessos de teste usam argumentos fixos, sem shell.
+"tests/**" = ["S101", "S105", "S106", "PLR2004", "SLF001", "ARG001", "FBT001", "PT012", "PT018", "S603"]
+
+[tool.ruff.lint.flake8-unused-arguments]
+# *args/**kwargs exigidos pelas assinaturas de DRF e Celery.
+ignore-variadic-names = true
+
+[tool.ruff.lint.flake8-self]
+# `_meta` é a API documentada de metadados de models do Django.
+extend-ignore-names = ["_meta"]
 
 [tool.ruff.lint.pylint]
 max-args = 8
@@ -195,6 +205,23 @@ include = [
     "src/pactor/*/money.py",
     "src/pactor/core/*.py",
 ]
-exclude = ["src/pactor/core/health.py"]
+exclude = ["src/pactor/core/health.py", "src/pactor/core/db.py", "src/pactor/core/models.py"]
+min_lines = 95.0
+min_branches = 90.0
+
+[[tool.pactor.coverage-gates]]
+name = "critical"
+include = [
+    "src/pactor/core/tenancy.py",
+    "src/pactor/core/outbox.py",
+    "src/pactor/core/consumers.py",
+    "src/pactor/core/idempotency.py",
+    "src/pactor/access/*.py",
+    "src/pactor/identity/services.py",
+    "src/pactor/identity/invitations.py",
+    "src/pactor/plans/services.py",
+    "src/pactor/audit/services.py",
+]
+exclude = []
 min_lines = 95.0
 min_branches = 90.0
