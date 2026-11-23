@@ -292,7 +292,7 @@ stateDiagram-v2
   assinatura (`contract_lifecycle_requires_signature`).
 - Datas de vigência são locais da organização (`zoneinfo`, fuso configurado) e os limites são
   inclusivos: o contrato vale do dia de início ao dia de término. Término vazio = indeterminado.
-- O agendador (`pactor.contracts.advance_lifecycles`, de hora em hora) é idempotente e recupera
+- O agendador (`pactor.deadlines.daily_cycle`, de hora em hora, após as renovações automáticas) é idempotente e recupera
   indisponibilidades: se início e término já passaram, registra as duas transições.
 - Ações manuais (suspender, retomar, rescindir, arquivar) exigem permissão, justificativa e data
   de efeito, e geram histórico somente-inserção (`LifecycleEvent`) e auditoria.
@@ -336,3 +336,35 @@ flowchart LR
   acesso a um contrato ao qual o arquivo está anexado; o hash é conferido antes da entrega.
 - **Anexos**: arquivos liberados marcados como parte da submissão entram no fingerprint da
   revisão; anexar ou remover invalida aprovação vigente.
+
+## Prazos, renovação, alertas e obrigações
+
+**Política de prazos e cálculos** (`deadlines/calendar.py`):
+
+| Tema | Regra |
+| --- | --- |
+| Âncora | Data de referência (término, início ou data fixa); o dia da âncora não é contado |
+| Dias corridos | Deslocamento direto |
+| Dias úteis | Exclui fins de semana (sábado e domingo) e feriados do calendário configurado |
+| Ajuste | `none`, `following` (próximo dia útil) ou `preceding` (dia útil anterior) |
+| Meses | Preserva o dia; quando o mês não tem o dia, usa o último (31/01 + 1 mês = 28/02 ou 29/02) |
+| Recorrência | Sempre calculada a partir da data inicial e da sequência (não "encolhe" o dia) |
+| Inclusividade | Vigência inclusiva nos dois limites; renovação vale no dia seguinte ao término |
+| Fuso | Regras usam a data local da organização; alertas disparam às 08:00 locais (`zoneinfo`) |
+| Feriados | Cadastrados pela organização; não há lista oficial embutida nem prazo legal presumido |
+
+- **Renovação automática** só ocorre com política `automatic`, que registra quem autorizou e quando
+  (restrição no banco). O ciclo diário executa renovações **antes** do encerramento automático;
+  cada renovação registra término anterior, novo término e regra (`RenewalRecord`, somente-inserção).
+  Não renovação registrada impede a renovação.
+- **Alertas** são únicos por (alvo, tipo, data). O disparo marca o alerta como enviado e emite evento
+  na outbox na mesma transação; alertas atrasados por indisponibilidade disparam uma única vez.
+  O e-mail vai apenas a destinatários com associação ativa.
+- **Obrigações** geram ocorrências estáveis por (obrigação, versão do cronograma, sequência) até um
+  horizonte de 24 meses; regerar é idempotente. Mudança de cronograma cria nova versão, cancela
+  pendentes futuras e preserva concluídas e submetidas. Conclusão exige evidência liberada quando
+  configurado; dependência bloqueia conclusão enquanto houver pendência até a mesma data; aprovação
+  de conclusão não pode ser feita por quem submeteu. Atraso é derivado da data local.
+- **Agendamento** (`CELERY_BEAT_SCHEDULE`): relay da outbox (10 s), reconciliação de assinaturas
+  (5 min), eventos pendentes (1 min), ciclo diário de contratos (1 h, idempotente) e alertas (1 min).
+  Um teste garante que toda task agendada e todo consumidor roteado estão registrados.

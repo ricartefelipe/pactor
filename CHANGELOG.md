@@ -5,6 +5,10 @@ Formato baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e
 
 ## [Não lançado]
 
+### Corrigido
+
+- Agendamento periódico do ciclo de vigência ausente; agora coberto por teste de guarda.
+
 ### Adicionado
 
 - Fundação do projeto: Django 5.2 LTS, DRF, Celery/RabbitMQ, Redis e PostgreSQL 17.
@@ -51,6 +55,11 @@ Formato baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e
   com limites de recursos (macros, referências externas, caminhos inválidos, bombas de
   compressão, conteúdo ativo), extração de texto, prévia, liberação e downloads autorizados.
 - Anexos de contrato incluídos no fingerprint da revisão.
+- Prazos com regra explícita (dias corridos/úteis, feriados configurados, ajuste, fim de mês,
+  bissextos), renovação automática somente autorizada e registrada, alertas idempotentes e
+  recuperáveis no fuso da organização, e calendário consolidado.
+- Obrigações recorrentes com ocorrências estáveis, evidência obrigatória, dependências,
+  aprovação de conclusão e escalonamento.
 - Validação do esquema OpenAPI sem avisos como gate da CI.
 - Mutation testing do núcleo de regras (manual e semanal).
 - Autenticação por e-mail com confirmação e MFA (django-allauth headless).
