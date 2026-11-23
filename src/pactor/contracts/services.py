@@ -33,6 +33,7 @@ from pactor.contracts.domain import (
     sha256_text,
 )
 from pactor.contracts.models import (
+    AmendmentChange,
     Comment,
     Contract,
     ContractDraft,
@@ -310,6 +311,16 @@ def _invalidate_approval(contract: Contract, *, reason: str) -> bool:
     return True
 
 
+def invalidate_for_content_change(contract: Contract, *, reason: str) -> bool:
+    """Invalida aprovação/rodada quando dados submetidos mudam fora do rascunho."""
+    invalidated = _invalidate_approval(contract, reason=reason)
+    if invalidated:
+        contract.version += 1
+        contract.updated_at = timezone.now()
+        contract.save()
+    return invalidated
+
+
 def get_draft(principal: Principal, contract_id: uuid.UUID) -> ContractDraft:
     contract = get_visible_contract(principal, contract_id)
     return ContractDraft.objects.get(organization_id=contract.organization_id, contract=contract)
@@ -359,6 +370,13 @@ def metadata_snapshot(contract: Contract) -> dict[str, Canonical]:
         "planned_start": contract.planned_start.isoformat() if contract.planned_start else None,
         "planned_end": contract.planned_end.isoformat() if contract.planned_end else None,
         "parent_id": str(contract.parent_id) if contract.parent_id else None,
+        # Alterações de condição de um aditivo fazem parte do que é aprovado e assinado.
+        "amendment_changes": [
+            {"field": c.field, "value": c.value, "effective_from": c.effective_from.isoformat()}
+            for c in AmendmentChange.objects.filter(
+                organization_id=contract.organization_id, amendment_id=contract.id
+            ).order_by("created_at", "id")
+        ],
     }
 
 

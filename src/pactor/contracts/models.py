@@ -11,6 +11,7 @@ from django.utils import timezone
 
 from pactor.access.policies import Confidentiality
 from pactor.contracts.domain import CONTRACT_TYPE_LABELS, ContractType, DraftingStatus, PartyRole
+from pactor.contracts.lifecycle import ConditionField, LifecycleStatus
 from pactor.core.models import TenantModel
 
 CONTRACT_TYPE_CHOICES = [(t.value, CONTRACT_TYPE_LABELS[t]) for t in ContractType]
@@ -35,6 +36,17 @@ PARTY_ROLE_CHOICES = [
     (PartyRole.DISCLOSING.value, "Parte reveladora"),
     (PartyRole.RECEIVING.value, "Parte receptora"),
     (PartyRole.MUTUAL.value, "Recíproca"),
+]
+
+
+LIFECYCLE_CHOICES = [
+    (LifecycleStatus.NOT_STARTED.value, "Sem vigência"),
+    (LifecycleStatus.AWAITING_START.value, "Aguardando início"),
+    (LifecycleStatus.ACTIVE.value, "Vigente"),
+    (LifecycleStatus.SUSPENDED.value, "Suspenso"),
+    (LifecycleStatus.ENDED.value, "Encerrado"),
+    (LifecycleStatus.TERMINATED.value, "Rescindido"),
+    (LifecycleStatus.ARCHIVED.value, "Arquivado"),
 ]
 
 
@@ -97,6 +109,13 @@ class Contract(TenantModel):
     parent = models.ForeignKey(
         "self", null=True, blank=True, on_delete=models.PROTECT, related_name="derived"
     )
+    # Vigência: independente da elaboração e da assinatura.
+    lifecycle_status = models.CharField(
+        max_length=16, choices=LIFECYCLE_CHOICES, default=LifecycleStatus.NOT_STARTED.value
+    )
+    signed_on = models.DateField(null=True, blank=True)
+    effective_start = models.DateField(null=True, blank=True)
+    effective_end = models.DateField(null=True, blank=True, help_text="Vazio: prazo indeterminado.")
     version = models.PositiveIntegerField(default=1)
     updated_at = models.DateTimeField(default=timezone.now)
 
@@ -123,6 +142,17 @@ class Contract(TenantModel):
                 condition=models.Q(approved_revision__isnull=True)
                 | ~models.Q(approved_fingerprint=""),
                 name="contract_approval_has_fingerprint",
+            ),
+            models.CheckConstraint(
+                condition=models.Q(effective_end__isnull=True)
+                | models.Q(effective_start__isnull=True)
+                | models.Q(effective_end__gte=models.F("effective_start")),
+                name="contract_effective_dates_ordered",
+            ),
+            models.CheckConstraint(
+                condition=models.Q(lifecycle_status="not_started")
+                | models.Q(drafting_status="signed"),
+                name="contract_lifecycle_requires_signature",
             ),
         ]
         indexes: ClassVar[list[models.Index]] = [
@@ -249,3 +279,56 @@ class ContractGrant(TenantModel):
 
     def __str__(self) -> str:
         return f"grant:{self.contract_id}"
+
+
+class LifecyclePolicy(TenantModel):
+    """Política de vigência da organização (ex.: se suspensões são permitidas)."""
+
+    allow_suspension = models.BooleanField(default=True)
+    max_suspension_days = models.PositiveIntegerField(null=True, blank=True)
+
+    class Meta(TenantModel.Meta):
+        constraints: ClassVar[list[models.BaseConstraint]] = [
+            *TenantModel.Meta.constraints,
+            models.UniqueConstraint(
+                fields=["organization"], name="lifecycle_policy_per_organization"
+            ),
+        ]
+
+    def __str__(self) -> str:
+        return f"política:{self.organization_id}"
+
+
+class LifecycleEvent(TenantModel):
+    """Histórico somente-inserção da vigência, com justificativa e data de efeito."""
+
+    contract = models.ForeignKey(
+        Contract, on_delete=models.PROTECT, related_name="lifecycle_events"
+    )
+    action = models.CharField(max_length=24)
+    from_status = models.CharField(max_length=16)
+    to_status = models.CharField(max_length=16)
+    effective_date = models.DateField()
+    reason = models.CharField(max_length=500, blank=True)
+    actor = models.ForeignKey(
+        "identity.User", null=True, blank=True, on_delete=models.PROTECT, related_name="+"
+    )
+
+    def __str__(self) -> str:
+        return f"{self.contract_id}:{self.action}"
+
+
+class AmendmentChange(TenantModel):
+    """Alteração de condição proposta por um aditivo (vale após a assinatura do aditivo)."""
+
+    amendment = models.ForeignKey(
+        Contract, on_delete=models.PROTECT, related_name="amendment_changes"
+    )
+    parent = models.ForeignKey(Contract, on_delete=models.PROTECT, related_name="incoming_changes")
+    field = models.CharField(max_length=20, choices=[(f.value, f.value) for f in ConditionField])
+    value = models.CharField(max_length=500, blank=True)
+    effective_from = models.DateField()
+    created_by = models.ForeignKey("identity.User", on_delete=models.PROTECT, related_name="+")
+
+    def __str__(self) -> str:
+        return f"{self.amendment_id}:{self.field}"
