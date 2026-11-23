@@ -2,6 +2,15 @@
 
 FROM ghcr.io/astral-sh/uv:0.13.9 AS uv
 
+# Aplicação web: compilada aqui e servida pelo Django (whitenoise) na mesma origem da API.
+# O ambiente Node existe só neste estágio e não vai para a imagem final.
+FROM node:24.22.2-trixie-slim AS frontend
+WORKDIR /build
+COPY frontend/package.json frontend/package-lock.json ./
+RUN npm ci --no-audit --no-fund
+COPY frontend/ ./
+RUN npm run build
+
 FROM python:3.13.18-slim-trixie AS runtime
 
 LABEL org.opencontainers.image.title="pactor" \
@@ -17,6 +26,7 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
     PATH="/opt/venv/bin:$PATH" \
     DJANGO_SETTINGS_MODULE=pactor.config.settings \
     PACTOR_STATIC_ROOT=/srv/pactor/static \
+    PACTOR_FRONTEND_DIST=/srv/pactor/app/frontend/dist \
     PACTOR_MEDIA_ROOT=/srv/pactor/media
 
 # Atualizações de segurança do sistema base e remoção do pip global: a
@@ -39,6 +49,7 @@ RUN --mount=from=uv,source=/uv,target=/usr/local/bin/uv \
 
 COPY manage.py ./
 COPY src ./src
+COPY --from=frontend /build/dist ./frontend/dist
 RUN --mount=from=uv,source=/uv,target=/usr/local/bin/uv \
     uv sync --frozen --no-dev \
  && PACTOR_SECRET_KEY=build-only python manage.py collectstatic --noinput \

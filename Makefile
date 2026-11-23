@@ -10,7 +10,7 @@ export CELERY_BROKER_URL ?= amqp://pactor:pactor-local@localhost:5672/pactor
 export REDIS_URL ?= redis://localhost:6379/0
 
 .PHONY: mutation test-external pytest infra lock-check lint format typecheck audit bandit secrets test-unit test coverage \
-        migrations-check openapi-check check
+        migrations-check openapi-check check frontend-check e2e
 
 infra:
 	docker compose up -d postgres rabbitmq redis mailpit clamav
@@ -60,7 +60,17 @@ mutation:
 openapi-check:
 	uv run python manage.py spectacular --validate --fail-on-warn --file var/openapi.yaml
 
-check: lock-check lint typecheck audit bandit migrations-check openapi-check test
+# Frontend: tipos gerados a partir do esquema atual, lint, formatação, testes e build.
+frontend-check: openapi-check
+	cd frontend && npm ci --no-fund && npm run check:api && npm run lint && npm run format:check \
+		&& npm run typecheck && npm test && npm audit && npm run build
+
+# Roteiro ponta a ponta no navegador. Requer a pilha completa no ar
+# (docker compose up --build) e os dados de demonstração (seed_demo).
+e2e:
+	cd frontend && npx playwright test
+
+check: lock-check lint typecheck audit bandit migrations-check openapi-check test frontend-check
 
 # Integração real com provedores externos (exige credenciais; ver .env.example).
 test-external:
