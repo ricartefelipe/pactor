@@ -6,7 +6,7 @@ import uuid
 from typing import Any, ClassVar
 
 from django.db.models import QuerySet
-from drf_spectacular.utils import extend_schema
+from drf_spectacular.utils import extend_schema, extend_schema_view
 from rest_framework import mixins, serializers, status
 from rest_framework.decorators import action
 from rest_framework.request import Request
@@ -102,6 +102,7 @@ class RequestFilterSerializer(serializers.Serializer[None]):
     status = serializers.ChoiceField(choices=RequestStatus.choices, required=False)
 
 
+@extend_schema_view(list=extend_schema(parameters=[RequestFilterSerializer]))
 class RequestViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, TenantViewSet):
     serializer_class = RequestSerializer
     pagination_class = StablePagination

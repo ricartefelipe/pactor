@@ -23,6 +23,7 @@ from pactor.core.models import OutboxEvent
 from pactor.core.tenancy import tenant_context
 from pactor.identity.models import Organization, User
 from pactor.signatures import services
+from pactor.signatures.api import SimulatedWebhookSerializer
 from pactor.signatures.models import (
     DocumentKind,
     Envelope,
@@ -33,6 +34,7 @@ from pactor.signatures.models import (
 from pactor.signatures.simulator import SIGNATURE_HEADER, SimulatorDisabledError, SimulatorProvider
 from pactor.signatures.storage import DocumentIntegrityError, read_verified, sha256_bytes
 from tests import factories
+from tests.schema_match import assert_matches
 
 pytestmark = pytest.mark.django_db(transaction=True)
 JSON = "application/json"
@@ -428,6 +430,7 @@ def test_api_send_list_and_simulate_flow() -> None:
     )
     assert action.status_code == 200, action.json()
     webhook = action.json()
+    assert_matches(SimulatedWebhookSerializer(), webhook)
     assert _post_webhook(webhook["headers"], webhook["body"].encode())["outcome"] == "applied"
     replay = client.post(
         f"/api/v1/envelopes/{envelope_id}/simulate",

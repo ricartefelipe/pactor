@@ -34,6 +34,10 @@ class FailureSerializer(serializers.ModelSerializer[ConsumerFailure]):
         read_only_fields = fields
 
 
+class RequeuedSerializer(serializers.Serializer[None]):
+    requeued = serializers.IntegerField()
+
+
 class FailuresView(TenantAPIView):
     action_permissions: ClassVar[dict[str, Permission | None]] = {
         "get": Permission.OPERATIONS_REPROCESS
@@ -63,6 +67,6 @@ class RequeueDeadEventsView(TenantAPIView):
         "post": Permission.OPERATIONS_REPROCESS
     }
 
-    @extend_schema(request=None, responses={200: dict})
+    @extend_schema(request=None, responses=RequeuedSerializer)
     def post(self, _request: Request) -> Response:
         return Response({"requeued": operations.requeue_dead_events(self.principal)})

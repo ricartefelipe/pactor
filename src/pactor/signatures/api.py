@@ -13,7 +13,7 @@ from rest_framework.decorators import action
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from pactor.access.api import TenantViewSet
+from pactor.access.api import IDEMPOTENCY_KEY, TenantViewSet
 from pactor.access.policies import Permission
 from pactor.contracts.selectors import get_visible_contract
 from pactor.core.errors import AccessDeniedError, NotFoundError
@@ -82,6 +82,13 @@ class VoidSerializer(serializers.Serializer[Envelope]):
     reason = serializers.CharField(max_length=300)
 
 
+class SimulatedWebhookSerializer(serializers.Serializer[None]):
+    """Webhook gerado pelo simulador, a ser entregue em /webhooks/signatures/simulator."""
+
+    headers = serializers.DictField(child=serializers.CharField())
+    body = serializers.CharField()
+
+
 class SimulatorActionSerializer(serializers.Serializer[None]):
     recipient_key = serializers.CharField(max_length=40)
     action = serializers.ChoiceField(
@@ -135,7 +142,9 @@ class EnvelopeViewSet(TenantViewSet):
     def retrieve(self, _request: Request, pk: uuid.UUID) -> Response:
         return Response(EnvelopeSerializer(self._visible_envelope(pk)).data)
 
-    @extend_schema(request=SendSerializer, responses={201: EnvelopeSerializer})
+    @extend_schema(
+        request=SendSerializer, responses={201: EnvelopeSerializer}, parameters=[IDEMPOTENCY_KEY]
+    )
     @action(detail=False, methods=["post"])
     def send(self, request: Request) -> Response:
         def operation() -> Response:
@@ -179,7 +188,7 @@ class EnvelopeViewSet(TenantViewSet):
         response["X-Pactor-SHA256"] = document.sha256
         return response
 
-    @extend_schema(request=SimulatorActionSerializer, responses={200: dict})
+    @extend_schema(request=SimulatorActionSerializer, responses=SimulatedWebhookSerializer)
     @action(detail=True, methods=["post"])
     def simulate(self, request: Request, pk: uuid.UUID) -> Response:
         """Ação no simulador (assinar, recusar, reenviar evento). Indisponível fora do simulador."""

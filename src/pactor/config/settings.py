@@ -315,6 +315,7 @@ SPECTACULAR_SETTINGS = {
         "PartyRoleEnum": "pactor.contracts.models.PARTY_ROLE_CHOICES",
         "PartyKindEnum": "pactor.counterparties.models.PARTY_KIND_CHOICES",
         "RoleEnum": "pactor.identity.models.ROLE_CHOICES",
+        "PermissionEnum": "pactor.identity.models.PERMISSION_CHOICES",
         "MembershipKindEnum": "pactor.identity.models.MembershipKind",
         "MembershipStatusEnum": "pactor.identity.models.MembershipStatus",
         "InvitationStatusEnum": "pactor.identity.models.InvitationStatus",

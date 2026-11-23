@@ -6,15 +6,16 @@ import uuid
 from typing import Any, ClassVar
 
 from django.db.models import Q, QuerySet
-from drf_spectacular.utils import extend_schema
+from drf_spectacular.utils import extend_schema, extend_schema_view
 from rest_framework import mixins, serializers, status
 from rest_framework.decorators import action
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from pactor.access.api import TenantViewSet
+from pactor.access.api import IDEMPOTENCY_KEY, TenantViewSet
 from pactor.access.policies import Confidentiality, Permission, can_edit_contract
 from pactor.contracts import selectors, services
+from pactor.contracts.diff import ChangeKind
 from pactor.contracts.domain import ContractType, PartyRole
 from pactor.contracts.models import (
     CONFIDENTIALITY_CHOICES,
@@ -170,6 +171,21 @@ class ContractFilterSerializer(serializers.Serializer[None]):
     tag = serializers.CharField(required=False, max_length=40)
 
 
+class HunkSerializer(serializers.Serializer[None]):
+    kind = serializers.ChoiceField(choices=[(k.value, k.value) for k in ChangeKind])
+    old_start = serializers.IntegerField()
+    old_lines = serializers.ListField(child=serializers.CharField(allow_blank=True))
+    new_start = serializers.IntegerField()
+    new_lines = serializers.ListField(child=serializers.CharField(allow_blank=True))
+
+
+class ComparisonSerializer(serializers.Serializer[None]):
+    kind = serializers.ChoiceField(choices=[("textual", "Textual")])
+    inserted_lines = serializers.IntegerField()
+    deleted_lines = serializers.IntegerField()
+    hunks = HunkSerializer(many=True)
+
+
 class DraftSerializer(serializers.ModelSerializer[ContractDraft]):
     class Meta:
         model = ContractDraft
@@ -234,6 +250,7 @@ class ContractPagination(StablePagination):
     ordering = ("-updated_at", "-id")
 
 
+@extend_schema_view(list=extend_schema(parameters=[ContractFilterSerializer]))
 class ContractViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, TenantViewSet):
     serializer_class = ContractSerializer
     pagination_class = ContractPagination
@@ -275,7 +292,11 @@ class ContractViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, TenantVi
             ContractSerializer(contract, context={"view": self}).data, status=status_code
         )
 
-    @extend_schema(request=ContractCreateSerializer, responses={201: ContractSerializer})
+    @extend_schema(
+        request=ContractCreateSerializer,
+        responses={201: ContractSerializer},
+        parameters=[IDEMPOTENCY_KEY],
+    )
     def create(self, request: Request, *args: Any, **kwargs: Any) -> Response:
         def operation() -> Response:
             serializer = ContractCreateSerializer(data=request.data)
@@ -335,7 +356,10 @@ class ContractViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, TenantVi
 
     @extend_schema(methods=["GET"], responses=RevisionSummarySerializer(many=True))
     @extend_schema(
-        methods=["POST"], request=PublishSerializer, responses={201: RevisionDetailSerializer}
+        methods=["POST"],
+        request=PublishSerializer,
+        responses={201: RevisionDetailSerializer},
+        parameters=[IDEMPOTENCY_KEY],
     )
     @action(detail=True, methods=["get", "post"])
     def revisions(self, request: Request, pk: uuid.UUID) -> Response:
@@ -366,7 +390,7 @@ class ContractViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, TenantVi
             RevisionDetailSerializer(selectors.get_revision(contract, revision_id)).data
         )
 
-    @extend_schema(parameters=[CompareSerializer], responses={200: dict})
+    @extend_schema(parameters=[CompareSerializer], responses=ComparisonSerializer)
     @action(detail=True, methods=["get"])
     def compare(self, request: Request, pk: uuid.UUID) -> Response:
         params = CompareSerializer(data=request.query_params)

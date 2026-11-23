@@ -14,6 +14,8 @@ from typing import TYPE_CHECKING, Any, ClassVar
 
 from django.http import HttpRequest
 from django.http.response import HttpResponseBase
+from drf_spectacular.types import OpenApiTypes
+from drf_spectacular.utils import OpenApiParameter
 from oauth2_provider.models import AccessToken
 from rest_framework.renderers import JSONRenderer
 from rest_framework.request import Request
@@ -29,6 +31,16 @@ from pactor.core.errors import AccessDeniedError
 from pactor.core.observability import bind_log_context, entity_correlation, extend_log_context
 from pactor.identity.models import User
 from pactor.integrations.services import principal_for_token
+
+#: Cabeçalho exigido pelas operações idempotentes (documentado no esquema OpenAPI).
+IDEMPOTENCY_KEY = OpenApiParameter(
+    "Idempotency-Key",
+    OpenApiTypes.STR,
+    OpenApiParameter.HEADER,
+    required=True,
+    description="Chave única por operação (8 a 128 caracteres: letras, números, - e _). "
+    "Repetir a mesma chave com o mesmo corpo devolve o resultado original.",
+)
 
 if TYPE_CHECKING:
     _GenericViewSet = GenericViewSet[Any]

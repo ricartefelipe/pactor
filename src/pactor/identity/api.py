@@ -26,6 +26,7 @@ from pactor.core.errors import AccessDeniedError, NotFoundError
 from pactor.identity import services
 from pactor.identity.mfa import has_mfa_enrolled, session_used_mfa
 from pactor.identity.models import (
+    PERMISSION_CHOICES,
     ROLE_CHOICES,
     Department,
     Invitation,
@@ -52,8 +53,8 @@ class OrganizationSummarySerializer(serializers.Serializer[Membership]):
     id = serializers.UUIDField(source="organization_id")
     name = serializers.CharField(source="organization.name")
     slug = serializers.CharField(source="organization.slug")
-    kind = serializers.CharField()
-    roles = serializers.ListField(child=serializers.CharField())
+    kind = serializers.ChoiceField(choices=MembershipKind.choices)
+    roles = serializers.ListField(child=serializers.ChoiceField(choices=ROLE_CHOICES))
 
 
 class MembershipSerializer(serializers.ModelSerializer[Membership]):
@@ -129,6 +130,36 @@ class CreateOrganizationSerializer(serializers.Serializer[Membership]):
     name = serializers.CharField(max_length=200)
 
 
+class ActiveOrganizationSerializer(serializers.Serializer[None]):
+    """Documentação da organização ativa e do que o usuário pode fazer nela."""
+
+    organization_id = serializers.UUIDField()
+    name = serializers.CharField()
+    kind = serializers.ChoiceField(choices=MembershipKind.choices)
+    roles = serializers.ListField(child=serializers.ChoiceField(choices=ROLE_CHOICES))
+    permissions = serializers.ListField(child=serializers.ChoiceField(choices=PERMISSION_CHOICES))
+    mfa_required_for = serializers.ListField(
+        child=serializers.ChoiceField(choices=PERMISSION_CHOICES)
+    )
+
+
+class MeSerializer(serializers.Serializer[None]):
+    """Documentação da resposta de /me e das trocas de organização."""
+
+    id = serializers.UUIDField()
+    email = serializers.EmailField()
+    full_name = serializers.CharField()
+    mfa_enrolled = serializers.BooleanField()
+    mfa_satisfied = serializers.BooleanField()
+    organizations = OrganizationSummarySerializer(many=True)
+    active_organization = ActiveOrganizationSerializer(allow_null=True)
+    role_labels = serializers.DictField(child=serializers.CharField())
+
+
+class AcceptedInvitationSerializer(serializers.Serializer[None]):
+    organization_id = serializers.UUIDField()
+
+
 # ---------------------------------------------------------------------------
 # Views sem organização ativa
 # ---------------------------------------------------------------------------
@@ -169,13 +200,13 @@ def _me_payload(request: Request, user: User) -> dict[str, Any]:
 
 
 class MeView(APIView):
-    @extend_schema(responses={200: dict})
+    @extend_schema(responses=MeSerializer)
     def get(self, request: Request) -> Response:
         return Response(_me_payload(request, _user(request)))
 
 
 class ActiveOrganizationView(APIView):
-    @extend_schema(request=SwitchOrganizationSerializer, responses={200: dict})
+    @extend_schema(request=SwitchOrganizationSerializer, responses=MeSerializer)
     def put(self, request: Request) -> Response:
         user = _user(request)
         serializer = SwitchOrganizationSerializer(data=request.data)
@@ -192,7 +223,7 @@ class ActiveOrganizationView(APIView):
 
 
 class OrganizationCreateView(APIView):
-    @extend_schema(request=CreateOrganizationSerializer, responses={201: dict})
+    @extend_schema(request=CreateOrganizationSerializer, responses={201: MeSerializer})
     def post(self, request: Request) -> Response:
         user = _user(request)
         serializer = CreateOrganizationSerializer(data=request.data)
@@ -210,7 +241,7 @@ class OrganizationCreateView(APIView):
 
 
 class AcceptInvitationView(APIView):
-    @extend_schema(request=AcceptInvitationSerializer, responses={200: dict})
+    @extend_schema(request=AcceptInvitationSerializer, responses=AcceptedInvitationSerializer)
     def post(self, request: Request) -> Response:
         user = _user(request)
         serializer = AcceptInvitationSerializer(data=request.data)

@@ -19,10 +19,12 @@ from pactor.core.errors import (
 from pactor.core.models import OutboxEvent
 from pactor.core.tenancy import tenant_context
 from pactor.identity import services
+from pactor.identity.api import AcceptedInvitationSerializer
 from pactor.identity.invitations import make_token
 from pactor.identity.models import Invitation, Membership, MembershipKind, MembershipStatus
 from pactor.plans.models import Subscription
 from tests import factories
+from tests.schema_match import assert_matches
 
 pytestmark = pytest.mark.django_db(transaction=True)
 
@@ -143,6 +145,7 @@ def test_invitation_flow_sends_email_event_and_accepts() -> None:
         "/api/v1/invitations/accept", {"token": token}, content_type="application/json"
     )
     assert accepted.status_code == 200
+    assert_matches(AcceptedInvitationSerializer(), accepted.json())
     principal = factories.principal(org, invitee)
     assert principal.roles == {Role.REVIEWER} and principal.department_ids == {dept.id}
 

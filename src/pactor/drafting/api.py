@@ -12,7 +12,7 @@ from rest_framework.decorators import action
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from pactor.access.api import TenantViewSet
+from pactor.access.api import IDEMPOTENCY_KEY, TenantViewSet
 from pactor.access.policies import Permission
 from pactor.contracts.api import RevisionDetailSerializer
 from pactor.contracts.domain import ContractType
@@ -125,7 +125,11 @@ class TemplateViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, TenantVi
         version = services.publish(self.principal, pk, **serializer.validated_data)
         return Response(TemplateVersionSerializer(version).data, status=status.HTTP_201_CREATED)
 
-    @extend_schema(request=GenerateSerializer, responses={201: RevisionDetailSerializer})
+    @extend_schema(
+        request=GenerateSerializer,
+        responses={201: RevisionDetailSerializer},
+        parameters=[IDEMPOTENCY_KEY],
+    )
     @action(detail=False, methods=["post"])
     def generate(self, request: Request) -> Response:
         def operation() -> Response:
