@@ -54,6 +54,10 @@ dependência real; sem essa marca, o item tem código e testes locais.
 
 | Data | Comando | Resultado |
 | --- | --- | --- |
+| 2026-11-23 | `make test` (aplicação web) | 569 testes aprovados; gate core 98,52% / 92,81%; gate crítico 98,06% / 91,59% |
+| 2026-11-23 | `make frontend-check` | Tipos da API atualizados; ESLint, Prettier e TypeScript sem apontamentos; 30 testes Vitest; `npm audit` sem vulnerabilidades; build ok |
+| 2026-11-23 | `npx playwright test` (pilha local: gunicorn, worker, beat, Mailpit, simulador) | 2 testes aprovados (roteiro de 15 passos e administração com TOTP; axe-core sem violações graves) em 2,6 min |
+| 2026-11-23 | `docker build` (estágio do frontend) | Imagem construída com a aplicação web compilada |
 | 2026-11-23 | `make lock-check lint typecheck audit bandit migrations-check openapi-check` (operação, métricas e seed) | Sem apontamentos |
 | 2026-11-23 | `make test` (operação, métricas e seed) | 553 testes aprovados; gate core 98,51% / 92,81%; gate crítico 98,01% / 91,59% |
 | 2026-11-23 | `make test` (integrações OAuth) | 531 testes aprovados; gate core 98,49% / 92,86%; gate crítico 98,05% / 91,57% |
