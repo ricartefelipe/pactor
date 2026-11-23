@@ -47,6 +47,10 @@ Formato baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e
   histórico e agendador idempotente.
 - Aditivos que preservam o original e resolução das condições vigentes em uma data.
 - Limite de contratos ativos do plano aplicado no envio para assinatura.
+- Pipeline de arquivos PDF/DOCX com quarentena, ClamAV real, inspeção em subprocesso isolado
+  com limites de recursos (macros, referências externas, caminhos inválidos, bombas de
+  compressão, conteúdo ativo), extração de texto, prévia, liberação e downloads autorizados.
+- Anexos de contrato incluídos no fingerprint da revisão.
 - Validação do esquema OpenAPI sem avisos como gate da CI.
 - Mutation testing do núcleo de regras (manual e semanal).
 - Autenticação por e-mail com confirmação e MFA (django-allauth headless).

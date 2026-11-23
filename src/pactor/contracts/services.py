@@ -23,7 +23,6 @@ from pactor.approvals import services as approvals
 from pactor.audit import services as audit
 from pactor.contracts.diff import TextDiff, compare_text
 from pactor.contracts.domain import (
-    AttachmentDigest,
     Canonical,
     ContractType,
     DraftingStatus,
@@ -54,6 +53,7 @@ from pactor.core.errors import (
 )
 from pactor.core.tenancy import require_tenant
 from pactor.counterparties.models import Counterparty
+from pactor.files.selectors import submission_attachments
 from pactor.identity.models import Department, Membership, MembershipKind, MembershipStatus, Team
 from pactor.plans import services as plans
 
@@ -412,8 +412,7 @@ def publish_revision(
     if not draft.content.strip():
         raise DomainValidationError("Rascunho vazio não pode ser publicado.")
     metadata = metadata_snapshot(contract)
-    # Anexos relevantes entram no snapshot junto com o módulo de arquivos.
-    attachments: list[AttachmentDigest] = []
+    attachments = submission_attachments(contract)
     content_sha = sha256_text(draft.content)
     fingerprint = SubmissionSnapshot(content_sha, metadata, attachments).fingerprint()
     current = contract.current_revision
