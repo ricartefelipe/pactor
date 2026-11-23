@@ -1,6 +1,8 @@
+import re
+
 from django.conf import settings
 from django.contrib import admin
-from django.urls import include, path
+from django.urls import include, path, re_path
 from drf_spectacular.views import SpectacularAPIView
 from oauth2_provider import views as oauth_views
 from rest_framework.routers import SimpleRouter
@@ -9,7 +11,7 @@ from pactor.approvals.api import ApprovalRoundViewSet, DelegationViewSet, Workfl
 from pactor.audit.api import AuditEventViewSet
 from pactor.contracts import lifecycle_api
 from pactor.contracts.api import ContractViewSet
-from pactor.core import health
+from pactor.core import health, spa
 from pactor.core.api import operations
 from pactor.counterparties.api import CounterpartyViewSet
 from pactor.deadlines import api as deadlines
@@ -171,6 +173,20 @@ api_v1 = [
     *router.urls,
 ]
 
+_SERVICE_PREFIXES = "|".join(
+    re.escape(prefix)
+    for prefix in (
+        "api",
+        "_allauth",
+        "static",
+        "webhooks",
+        "o",
+        "health",
+        "metrics",
+        settings.PACTOR_ADMIN_PATH.strip("/"),
+    )
+)
+
 urlpatterns = [
     path("health/live", health.live, name="health-live"),
     path("health/ready", health.ready, name="health-ready"),
@@ -182,4 +198,11 @@ urlpatterns = [
     path("webhooks/signatures/<str:provider>", webhooks.receive, name="signature-webhook"),
     path("api/v1/", include(api_v1)),
     path(settings.PACTOR_ADMIN_PATH, admin.site.urls),
+    # Demais caminhos são rotas da aplicação web. Prefixos de serviço nunca caem
+    # aqui: um endereço inexistente da API continua respondendo 404.
+    re_path(
+        rf"^(?!(?:{_SERVICE_PREFIXES})(?:/|$)).*$",
+        spa.index,
+        name="web-app",
+    ),
 ]
