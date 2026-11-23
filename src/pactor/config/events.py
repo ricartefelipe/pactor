@@ -29,6 +29,7 @@ ROUTES: Mapping[str, tuple[Route, ...]] = MappingProxyType(
         "signatures.envelope_completed": (
             Route("pactor.signatures.fetch_documents", "integrations"),
         ),
+        "alerts.fired": (Route("pactor.notifications.alert_email", "notifications"),),
         "files.received": (Route("pactor.files.process_file", "extraction"),),
         "files.released": (),
         "signatures.void_requested": (Route("pactor.signatures.void_envelope", "integrations"),),

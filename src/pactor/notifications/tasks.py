@@ -10,8 +10,9 @@ from django.core.mail import send_mail
 
 from pactor.core.outbox import EventEnvelope
 from pactor.core.tasks import SideEffect, side_effect_consumer
+from pactor.deadlines.models import Alert, AlertStatus
 from pactor.identity.invitations import make_token
-from pactor.identity.models import Invitation, InvitationStatus
+from pactor.identity.models import Invitation, InvitationStatus, MembershipStatus, User
 
 
 @dataclass(frozen=True, slots=True)
@@ -50,4 +51,44 @@ def deliver(email: Email) -> None:
 invitation_email = side_effect_consumer(
     "pactor.notifications.invitation_email",
     SideEffect(prepare=prepare_invitation_email, perform=deliver),
+)
+
+
+def prepare_alert_email(envelope: EventEnvelope) -> list[Email] | None:
+    """Um e-mail por destinatário ativo do alerta; nada para alertas cancelados."""
+    alert = (
+        Alert.objects.select_related("contract")
+        .filter(id=uuid.UUID(str(envelope.payload["alert_id"])))
+        .first()
+    )
+    if alert is None or alert.status != AlertStatus.SENT:
+        return None
+    recipients = User.objects.filter(
+        id__in=alert.recipient_ids,
+        is_active=True,
+        memberships__organization_id=alert.organization_id,
+        memberships__status=MembershipStatus.ACTIVE,
+    ).values_list("email", flat=True)
+    link = f"{settings.PACTOR_PUBLIC_URL}/contratos/{alert.contract_id}"
+    return [
+        Email(
+            to=email,
+            subject=f"[Pactor] {alert.subject}",
+            body=(
+                f"{alert.subject}\n\nContrato {alert.contract.reference} — {alert.contract.title}\n"
+                f"Data de referência: {alert.fire_on:%d/%m/%Y}\n\nAcesse: {link}"
+            ),
+        )
+        for email in sorted(set(recipients))
+    ]
+
+
+def deliver_all(emails: list[Email]) -> None:
+    for email in emails:
+        deliver(email)
+
+
+alert_email = side_effect_consumer(
+    "pactor.notifications.alert_email",
+    SideEffect(prepare=prepare_alert_email, perform=deliver_all),
 )

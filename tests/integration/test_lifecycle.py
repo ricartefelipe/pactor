@@ -17,9 +17,9 @@ from pactor.contracts import services as contracts
 from pactor.contracts.domain import ContractType, PartyRole
 from pactor.contracts.lifecycle import ConditionField
 from pactor.contracts.models import Contract, LifecycleEvent, LifecyclePolicy
-from pactor.contracts.tasks import advance_lifecycles
 from pactor.core.errors import DomainValidationError, InvalidTransitionError, PlanLimitExceededError
 from pactor.core.tenancy import tenant_context
+from pactor.deadlines.tasks import daily_cycle
 from pactor.identity.models import Organization
 from pactor.plans.models import Plan
 from pactor.signatures import services as signatures
@@ -348,4 +348,6 @@ def test_scheduler_task_iterates_organizations() -> None:
     a = _approved_with_dates(timezone.localdate() - timedelta(days=1), None)
     _sign(a)
     assert _contract(a.org, a.contract.id).lifecycle_status == "active"
-    assert advance_lifecycles.apply().result == 0
+    result = daily_cycle.apply().result
+    assert isinstance(result, dict)
+    assert result["lifecycle"] == 0

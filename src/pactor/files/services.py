@@ -41,6 +41,7 @@ from pactor.core.tenancy import require_tenant, tenant_context
 from pactor.files.inspection import FileKind, Inspection, RejectionReason, rejection
 from pactor.files.models import ContractAttachment, FilePurpose, FileStatus, StoredFile
 from pactor.files.scanner import ClamdScanner, ScannerUnavailableError, ScanVerdict
+from pactor.obligations.models import ObligationOccurrence
 from pactor.plans import services as plans
 
 logger = logging.getLogger(__name__)
@@ -296,12 +297,19 @@ def process(
 # Acesso, anexos e downloads
 # ---------------------------------------------------------------------------
 def _accessible(principal: Principal, stored: StoredFile) -> bool:
+    """Autor do upload, ou quem enxerga um contrato ao qual o arquivo está vinculado.
+
+    Vínculos: anexo ativo do contrato ou evidência de ocorrência de obrigação.
+    """
     if stored.uploaded_by_id == principal.actor_id:
         return True
-    contract_ids = ContractAttachment.objects.filter(
-        file=stored, removed_at__isnull=True
-    ).values_list("contract_id", flat=True)
-    for contract_id in contract_ids:
+    attached = ContractAttachment.objects.filter(file=stored, removed_at__isnull=True).values_list(
+        "contract_id", flat=True
+    )
+    evidence = ObligationOccurrence.objects.filter(evidence=stored).values_list(
+        "obligation__contract_id", flat=True
+    )
+    for contract_id in sorted({*attached, *evidence}):
         try:
             get_visible_contract(principal, contract_id)
         except NotFoundError:
