@@ -65,6 +65,8 @@ Formato baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e
   valor contratado, projeção, obrigação e confirmação.
 - Pesquisa full-text com autorização antes de resultados, snippets, contagens, facetas e
   sugestões; indexação por revisão que ignora jobs atrasados; painel e exportação CSV.
+- Integrações OAuth (client credentials) vinculadas à organização, com papéis operacionais,
+  escopos que restringem permissões, token apenas no cabeçalho e revogação imediata.
 - Validação do esquema OpenAPI sem avisos como gate da CI.
 - Mutation testing do núcleo de regras (manual e semanal).
 - Autenticação por e-mail com confirmação e MFA (django-allauth headless).

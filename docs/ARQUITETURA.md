@@ -400,3 +400,17 @@ flowchart LR
   determinística (relevância, referência, id).
 - **Exportação**: CSV com neutralização de fórmulas (células iniciadas por `= + - @`), até 5.000
   linhas, exige `reports.read`.
+
+## Integrações máquina a máquina
+
+- **Fluxo**: OAuth 2.0 *client credentials* (Django OAuth Toolkit). Apenas os endpoints de token
+  (`/o/token/`, `/o/revoke_token/`) são expostos; aplicações são criadas pela API do Pactor por quem
+  tem `integrations.manage` (com MFA). O segredo é exibido uma única vez e armazenado como hash.
+- **Tenant explícito**: cada aplicação tem rota global (aplicação → organização → cliente). O
+  principal da integração é resolvido a partir do token, vincula a transação ao tenant e só existe
+  enquanto o cliente não estiver revogado (revogar apaga tokens emitidos).
+- **Papéis e escopos**: o cliente recebe papéis operacionais (nunca proprietário/administrador) e uma
+  lista de escopos permitida; o token concede no máximo esses escopos. Permissões efetivas =
+  papéis ∩ escopos do token, e a visibilidade por contrato continua valendo.
+- **Transporte**: token aceito somente no cabeçalho `Authorization: Bearer`; resposta 401 com
+  `WWW-Authenticate: Bearer` quando ausente ou inválido. Tokens expiram em 1 hora, sem refresh.
