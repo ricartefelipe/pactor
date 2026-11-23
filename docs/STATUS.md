@@ -15,22 +15,28 @@ dependência real; sem essa marca, o item tem código e testes locais.
 | Auditoria | Registro redigido, somente-inserção, isolado por organização | `test_identity.py` |
 | Outbox | Emissão transacional, relay com concessão, backoff, eventos esgotados, consumidores deduplicados | `test_outbox.py`, `test_consumer_tasks.py` |
 | Worker real | Outbox → RabbitMQ → worker Celery (papel `pactor_app`) → Mailpit, republicação sem duplicar e-mail | `tests/infra/test_worker_pipeline.py` (exercitado) |
-| Idempotência | Chave, escopo e fingerprint; disputa entre conexões | `tests/concurrency/test_idempotency_race.py` |
+| Idempotência | Chave, escopo e fingerprint; disputa entre conexões; rollback desfaz a reserva | `tests/concurrency/test_idempotency_race.py`, `test_contracts.py` |
+| Contrapartes | CPF/CNPJ, contatos, endereços, representantes, concorrência otimista, isolamento | `tests/integration/test_contracts.py` |
+| Contratos | Criação idempotente, referência sequencial, rascunho, revisões imutáveis, comparação textual, comentários, compartilhamento | `tests/integration/test_contracts.py` |
+| Visibilidade | Consulta equivalente à política (Hypothesis sobre PostgreSQL), confidenciais, externos, equipes | `test_property_visibility_query_matches_policy` |
+| Concorrência de revisões | Edição simultânea de rascunho e publicação simultânea | `tests/concurrency/test_revision_races.py` |
 
 ## Em andamento
 
-- Contrapartes, contratos, revisões e aprovação vinculada à revisão.
+- Aprovações vinculadas à revisão e envio ao simulador de assinatura.
 
 ## Verificações executadas
 
 | Data | Comando | Resultado |
 | --- | --- | --- |
+| 2026-11-22 | `make test` | 194 testes aprovados; gate core 98,90% / 94,00%; gate crítico 98,33% / 91,67% |
 | 2026-11-21 | `make test` | 152 testes aprovados; gate core 99,66% linhas / 97,87% branches; gate crítico 97,71% / 93,90% |
 | 2026-11-21 | `make lint typecheck audit bandit migrations-check` | Sem apontamentos |
 
 ## Pendências reais
 
-- Contratos, revisões, aprovações, assinaturas, vigência, obrigações, prazos, valores, arquivos,
+- Aprovações, assinaturas, vigência, obrigações, prazos, valores, arquivos,
   pesquisa, integrações OAuth e frontend.
 - Teste de perda de worker durante a execução (redelivery com `acks_late`) ainda não automatizado.
+- Anexos de revisão entram no fingerprint quando o módulo de arquivos for integrado.
 - gitleaks e Trivy executados apenas na CI (não disponíveis no ambiente local).

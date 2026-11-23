@@ -202,6 +202,7 @@ include = [
     "src/pactor/*/services/*.py",
     "src/pactor/*/policies.py",
     "src/pactor/*/calendar.py",
+    "src/pactor/*/diff.py",
     "src/pactor/*/money.py",
     "src/pactor/core/*.py",
 ]
@@ -221,6 +222,11 @@ include = [
     "src/pactor/identity/invitations.py",
     "src/pactor/plans/services.py",
     "src/pactor/audit/services.py",
+    "src/pactor/contracts/services.py",
+    "src/pactor/contracts/selectors.py",
+    "src/pactor/contracts/visibility.py",
+    "src/pactor/contracts/diff.py",
+    "src/pactor/counterparties/services.py",
 ]
 exclude = []
 min_lines = 95.0

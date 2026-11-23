@@ -53,6 +53,8 @@ INSTALLED_APPS = [
     "pactor.plans",
     "pactor.audit",
     "pactor.notifications",
+    "pactor.counterparties",
+    "pactor.contracts",
 ]
 
 MIDDLEWARE = [

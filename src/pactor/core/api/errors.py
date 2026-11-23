@@ -15,6 +15,7 @@ from rest_framework import exceptions as drf_exceptions
 from rest_framework import status
 from rest_framework.response import Response
 from rest_framework.views import exception_handler as drf_exception_handler
+from rest_framework.views import set_rollback
 
 from pactor.core.errors import PactorError
 from pactor.core.observability import current_log_context
@@ -53,6 +54,9 @@ def _drf_code(exc: drf_exceptions.APIException) -> str:
 
 def exception_handler(exc: Exception, context: Mapping[str, object]) -> Response | None:
     if isinstance(exc, PactorError):
+        # Erro de negócio encerra a operação inteira: com ATOMIC_REQUESTS, a
+        # transação da requisição é desfeita em vez de confirmar efeitos parciais.
+        set_rollback()
         return Response(error_body(exc.code, exc.message, exc.details), status=exc.http_status)
     if isinstance(exc, Http404):
         exc = drf_exceptions.NotFound()

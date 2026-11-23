@@ -10,9 +10,15 @@ from decimal import Decimal
 from allauth.account.models import EmailAddress
 from django.test import Client
 
-from pactor.access.policies import Principal, Role
+from pactor.access.policies import Confidentiality, Principal, PrincipalKind, Role
 from pactor.access.principal import ACTIVE_ORGANIZATION_SESSION_KEY, principal_for_membership
+from pactor.contracts import services as contract_services
+from pactor.contracts.domain import ContractType, PartyRole
+from pactor.contracts.models import Contract
 from pactor.core.tenancy import tenant_context
+from pactor.counterparties import services as cp_services
+from pactor.counterparties.domain import PartyKind, cnpj_check_digits
+from pactor.counterparties.models import Counterparty
 from pactor.identity import services
 from pactor.identity.models import (
     Department,
@@ -123,3 +129,67 @@ def client_for(person: User, org: Organization | None = None, *, mfa: bool = Tru
         session["account_authentication_methods"] = [{"method": "mfa", "at": 0, "type": "totp"}]
     session.save()
     return client
+
+
+def counterparty(
+    org: Organization,
+    *,
+    document: str | None = None,
+    name: str = "Fornecedora Exemplo Ltda (fictícia)",
+) -> Counterparty:
+    base = f"{next(_sequence):08d}0001"
+    doc = document or base + cnpj_check_digits(base)
+    with tenant_context(org.id):
+        manager = _system_manager(org)
+        return cp_services.create_counterparty(
+            manager, cp_services.CounterpartyData(kind=PartyKind.COMPANY, name=name, document=doc)
+        )
+
+
+def _system_manager(org: Organization) -> Principal:
+    """Principal de gestor usado apenas para montar cenários de teste."""
+    return Principal(
+        organization_id=org.id,
+        actor_id=uuid.uuid4(),
+        kind=PrincipalKind.USER,
+        roles=frozenset({Role.CONTRACT_MANAGER}),
+        mfa_satisfied=True,
+    )
+
+
+def contract(
+    org: Organization,
+    owner: User,
+    *,
+    confidentiality: str = "internal",
+    department: Department | None = None,
+    content: str = "Cláusula 1. Objeto.\nCláusula 2. Prazo.",
+    total_value: Decimal | None = Decimal("1000.00"),
+    cp: Counterparty | None = None,
+) -> Contract:
+    target = cp or counterparty(org)
+    with tenant_context(org.id):
+        manager = principal_for_owner(org, owner)
+        return contract_services.create_contract(
+            manager,
+            contract_services.ContractInput(
+                title="Contrato de serviços (exemplo fictício)",
+                contract_type=ContractType.SERVICES,
+                counterparty_id=target.id,
+                organization_role=PartyRole.CONTRACTOR,
+                counterparty_role=PartyRole.CONTRACTED,
+                owner_id=owner.id,
+                department_id=department.id if department else None,
+                confidentiality=Confidentiality(confidentiality),
+                total_value=total_value,
+                initial_content=content,
+            ),
+        )
+
+
+def principal_for_owner(org: Organization, owner: User) -> Principal:
+    """Principal do responsável, já dentro do contexto da organização."""
+    membership = Membership.objects.prefetch_related("department_links", "team_links").get(
+        organization=org, user=owner
+    )
+    return principal_for_membership(membership, mfa_satisfied=True)

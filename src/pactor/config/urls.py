@@ -5,7 +5,9 @@ from drf_spectacular.views import SpectacularAPIView
 from rest_framework.routers import SimpleRouter
 
 from pactor.audit.api import AuditEventViewSet
+from pactor.contracts.api import ContractViewSet
 from pactor.core import health
+from pactor.counterparties.api import CounterpartyViewSet
 from pactor.identity import api as identity
 
 router = SimpleRouter(trailing_slash=False)
@@ -14,6 +16,8 @@ router.register("invitations", identity.InvitationViewSet, basename="invitation"
 router.register("departments", identity.DepartmentViewSet, basename="department")
 router.register("teams", identity.TeamViewSet, basename="team")
 router.register("audit-events", AuditEventViewSet, basename="audit-event")
+router.register("counterparties", CounterpartyViewSet, basename="counterparty")
+router.register("contracts", ContractViewSet, basename="contract")
 
 api_v1 = [
     path("me", identity.MeView.as_view(), name="me"),
