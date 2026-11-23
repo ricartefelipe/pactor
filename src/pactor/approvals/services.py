@@ -41,6 +41,7 @@ from pactor.audit import services as audit
 from pactor.contracts.domain import DraftingStatus
 from pactor.contracts.models import Contract, ContractGrant, GrantSource
 from pactor.contracts.selectors import get_visible_contract
+from pactor.contracts.snapshots import current_fingerprint
 from pactor.contracts.transitions import transition
 from pactor.core import outbox
 from pactor.core.errors import (
@@ -235,6 +236,15 @@ def submit_for_approval(
         raise ConflictError(
             "A revisão vigente mudou desde a sua leitura.",
             details={"current_fingerprint": revision.fingerprint},
+        )
+    if current_fingerprint(contract, revision) != revision.fingerprint:
+        # Dados ou anexos mudaram depois da publicação: aprovar a revisão
+        # aprovaria condições (e escolheria a regra do workflow) que já não
+        # são as do contrato.
+        raise ConflictError(
+            f"Os dados ou anexos do contrato mudaram depois da revisão {revision.number}. "
+            "Publique uma nova revisão para enviá-la à aprovação.",
+            details={"revision_number": revision.number},
         )
     transition(contract, DraftingStatus.IN_APPROVAL)
     workflow = active_workflow()
