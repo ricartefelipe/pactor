@@ -179,8 +179,10 @@ test("contrato: dados, acesso, anexo liberado pelo antivírus e valores", async 
       mimeType: "application/pdf",
       buffer: samplePdf(`Anexo ficticio ${RUN}`),
     });
-    await expect(page.getByText("Liberado").first()).toBeVisible({ timeout: 180_000 });
-    await page.getByRole("button", { name: "Anexar arquivo liberado" }).click();
+    const attach = page.getByRole("button", { name: "Anexar arquivo liberado" });
+    await expect(attach).toBeEnabled({ timeout: 180_000 });
+    await expect(page.locator(".badge").getByText("Liberado", { exact: true })).toBeVisible();
+    await attach.click();
     await notice(page, "Arquivo anexado ao contrato.");
     const link = page.getByRole("link", { name: `anexo-${RUN}.pdf` });
     await expect(link).toBeVisible();
@@ -195,7 +197,7 @@ test("contrato: dados, acesso, anexo liberado pelo antivírus e valores", async 
     await login(page, "financeiro.a@exemplo.test");
     await openTab(page, contractUrl, "Valores");
     const schedule = page.getByRole("region", { name: "Gerar parcelas" });
-    await schedule.getByLabel(/^Valor total/).fill("1000.00");
+    await schedule.getByLabel(/^Valor total/).fill("1000,00"); // vírgula decimal brasileira
     await schedule.getByLabel(/^Número de parcelas/).fill("3");
     await schedule.getByLabel(/^Primeiro vencimento/).fill(isoDate(30));
     await schedule.getByRole("button", { name: "Gerar parcelas" }).click();
@@ -291,7 +293,9 @@ test("modelos, solicitações, contrapartes, calendário e relatórios", async (
     const csv = await page.request.get("/api/v1/reports/contracts.csv");
     expect(csv.status()).toBe(200);
     expect(csv.headers()["content-type"]).toContain("text/csv");
-    expect((await csv.text()).split("\n").length).toBeGreaterThan(1);
+    const lines = (await csv.text()).split("\n").filter((line) => line.trim() !== "");
+    expect(lines.length).toBeGreaterThanOrEqual(2);
+    expect(lines.some((line) => line.includes("exemplo fictício A"))).toBe(true);
     await expectAccessible(page);
   });
 });
