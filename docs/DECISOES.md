@@ -175,3 +175,25 @@ webhooks assinados com HMAC que percorrem o mesmo endpoint dos provedores reais.
 
 **Decisão.** `tests/external` só roda com `make test-external` e falha quando faltam credenciais.
 A CI não o executa; a situação fica registrada em `STATUS.md` como não exercitada.
+
+## ADR-024 — Papel dedicado de backup com BYPASSRLS
+
+**Contexto.** Com RLS forçada, nem o dono das tabelas consegue exportá-las: o `pg_dump` falha.
+Desligar o `FORCE` para o backup abriria uma janela em que o dono enxergaria tudo.
+
+**Decisão.** O papel `pactor_backup` (somente leitura via `pg_read_all_data`, com `BYPASSRLS`)
+existe apenas para o `pg_dump`. Nenhum processo da aplicação usa esse papel. A restauração é feita
+pelo superusuário do cluster, que restabelece donos, policies e privilégios.
+
+**Consequências.** A credencial de backup dá leitura de todas as organizações e deve ser
+guardada como as credenciais do banco. Backup e restauração foram exercitados (`RUNBOOKS.md`).
+
+## ADR-025 — Métricas de negócio calculadas na coleta
+
+**Decisão.** As métricas operacionais (outbox, falhas, arquivos, envelopes, alertas) são
+consultadas no banco a cada coleta, em vez de contadores mantidos pelos processos.
+
+**Consequências.** Os valores são corretos mesmo após reinícios e com vários workers. O custo
+é linear no número de organizações, por causa do contexto de tenant em cada uma. Isso é
+aceitável no intervalo usual de coleta (15 a 60 s) e deve ser revisto se o número de
+organizações crescer muito.

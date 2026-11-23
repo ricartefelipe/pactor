@@ -154,6 +154,27 @@ sequenceDiagram
   de pelo menos uma vez, com deduplicação nas repetições posteriores.
 - Retentativas: até 6, backoff exponencial (5s a 10min). Falhas ficam em `ConsumerFailure`.
 - Cada task fecha conexões antigas antes e depois e abre o tenant do evento.
+- Reprocessamento autorizado (`operations.reprocess`, com MFA): falhas definitivas são
+  reenviadas ao consumidor roteado com o evento original, e a deduplicação continua valendo.
+  Eventos esgotados da organização voltam a `pending`. Tudo é auditado (ver `RUNBOOKS.md`).
+
+## Observabilidade
+
+- **Logs**: JSON com redação de segredos e chaves de correlação: `request_id`, organização,
+  `task_id` e os identificadores de contrato, revisão e envelope, vindos dos parâmetros da rota
+  (requisições) ou do payload do evento (tasks).
+- **`/metrics`** (Prometheus): exige `Authorization: Bearer` com `PACTOR_METRICS_TOKEN`; sem
+  token configurado, responde 404. Nunca é público.
+- **Métricas HTTP**: latência, erros 5xx e consultas ao banco por requisição (detecta N+1), com
+  label da rota resolvida, nunca do caminho bruto. No Gunicorn, as séries de todos os workers
+  são agregadas em modo multiprocesso (`PROMETHEUS_MULTIPROC_DIR`, limpo na inicialização).
+- **Métricas de negócio**, calculadas no momento da coleta: outbox por situação e idade do
+  pendente mais antigo, falhas e consumidores presos (mais de 15 minutos em retentativa),
+  eventos de assinatura pendentes, arquivos por situação (quarentena, rejeição, bloqueio),
+  envelopes por situação e alertas vencidos. Contagens de tabelas de tenant percorrem cada
+  organização com o próprio contexto, sem desviar do RLS.
+- **Cardinalidade**: labels apenas com conjuntos fechados (situação, rota, nome do
+  consumidor). Identificadores de organização, contrato ou usuário nunca viram label.
 
 ## Contratos, rascunho e revisões
 
@@ -400,6 +421,12 @@ flowchart LR
   determinística (relevância, referência, id).
 - **Exportação**: CSV com neutralização de fórmulas (células iniciadas por `= + - @`), até 5.000
   linhas, exige `reports.read`.
+
+## Dados de demonstração
+
+`manage.py seed_demo` cria duas organizações fictícias pelos casos de uso reais (convite e
+aceite, regras de plano, auditoria e outbox). É idempotente e recusado em produção. Os
+usuários e as credenciais públicas estão em `DEMONSTRACAO.md`.
 
 ## Integrações máquina a máquina
 
