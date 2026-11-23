@@ -52,6 +52,7 @@ dependência real; sem essa marca, o item tem código e testes locais.
 
 | Versão | Data | Conteúdo |
 | --- | --- | --- |
+| 0.2.0 | 2026-11-23 | QR code no TOTP, `verify_documents`, recuperação a um ponto no tempo exercitada, testes no navegador de todas as telas, checks de frontend e ponta a ponta obrigatórios |
 | 0.1.0 | 2026-11-23 | Primeira versão: todas as áreas acima, aplicação web e roteiro demonstrativo no navegador |
 
 ## Verificações executadas
