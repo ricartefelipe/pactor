@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type ChangeEvent } from "react";
-import { Link, NavLink, Outlet, useLocation, useNavigate } from "react-router";
+import { Link, NavLink, Outlet, useLocation, useNavigate, useNavigation } from "react-router";
 
 import { errorMessage } from "../api/errors";
 import { useActiveOrganization, useSession, type Permission } from "../auth/session";
@@ -103,6 +103,9 @@ export function Layout() {
   const location = useLocation();
   const navigate = useNavigate();
   const main = useRef<HTMLElement>(null);
+  // Páginas carregadas sob demanda: enquanto a próxima carrega, a atual continua
+  // visível e marcada como ocupada.
+  const navigating = useNavigation().state !== "idle";
 
   // Ao navegar, o foco vai para o conteúdo, como numa troca de página tradicional.
   useEffect(() => {
@@ -141,7 +144,12 @@ export function Layout() {
           <NavList items={WORK} label="Trabalho" />
           <NavList items={ADMINISTRATION} label="Administração" />
         </nav>
-        <main id="conteudo" ref={main} tabIndex={-1} className="content">
+        <main id="conteudo" ref={main} tabIndex={-1} className="content" aria-busy={navigating}>
+          {navigating && (
+            <p className="navigation-progress" role="status">
+              Abrindo página…
+            </p>
+          )}
           <Outlet />
         </main>
       </div>

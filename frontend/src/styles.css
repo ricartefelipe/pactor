@@ -207,6 +207,22 @@ code {
   outline: none;
 }
 
+.navigation-progress {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  margin: 0 0 var(--space-4);
+  padding: var(--space-2) var(--space-3);
+  background: var(--color-info-bg);
+  color: var(--color-info);
+  border-radius: var(--radius);
+  font-weight: 600;
+}
+
+.content[aria-busy="true"] > :not(.navigation-progress) {
+  opacity: 0.6;
+}
+
 .page-header {
   display: flex;
   flex-wrap: wrap;

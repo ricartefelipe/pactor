@@ -1,5 +1,6 @@
 import { screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import type { ReactElement } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { AuthGate } from "../app/gates";
@@ -106,5 +107,40 @@ describe("sessão", () => {
       "href",
       "#conteudo",
     );
+  });
+});
+
+describe("navegação para páginas carregadas sob demanda", () => {
+  it("marca a página atual como ocupada até a próxima carregar", async () => {
+    let finish: (module: { Component: () => ReactElement }) => void = () => undefined;
+    const user = userEvent.setup();
+    renderRoutes(
+      [
+        {
+          path: "/",
+          element: <Layout />,
+          children: [
+            { index: true, element: <p>Início</p> },
+            {
+              path: "contratos",
+              lazy: () =>
+                new Promise<{ Component: () => ReactElement }>((resolve) => {
+                  finish = resolve;
+                }),
+            },
+          ],
+        },
+      ],
+      { session: me() },
+    );
+    await user.click(await screen.findByRole("link", { name: "Contratos" }));
+
+    expect(await screen.findByText("Abrindo página…")).toBeInTheDocument();
+    expect(screen.getByRole("main")).toHaveAttribute("aria-busy", "true");
+    expect(screen.getByText("Início")).toBeInTheDocument();
+
+    finish({ Component: () => <p>Lista de contratos</p> });
+    expect(await screen.findByText("Lista de contratos")).toBeInTheDocument();
+    expect(screen.getByRole("main")).toHaveAttribute("aria-busy", "false");
   });
 });
