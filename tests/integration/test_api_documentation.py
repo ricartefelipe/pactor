@@ -5,6 +5,7 @@ from __future__ import annotations
 from datetime import timedelta
 
 import pytest
+from django.conf import settings
 from django.utils import timezone
 
 from pactor.access.policies import Role
@@ -38,6 +39,8 @@ def test_identity_responses_match_their_documentation() -> None:
     assert switched.status_code == 200
     assert_matches(MeSerializer(), switched.json())
     assert switched.json()["active_organization"]["permissions"]
+    # Testes transacionais limpam as tabelas, inclusive os planos da migration de dados.
+    factories.plan(settings.PACTOR_TRIAL_PLAN)
     created = without_active.post("/api/v1/organizations", {"name": "Nova"}, content_type=JSON)
     assert created.status_code == 201
     assert_matches(MeSerializer(), created.json())
