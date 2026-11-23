@@ -20,6 +20,7 @@ from pactor.core.errors import (
     NotFoundError,
 )
 from pactor.core.tenancy import bind_tenant, require_tenant
+from pactor.identity.models import User
 from pactor.integrations.models import IntegrationClient, IntegrationRoute
 from pactor.plans import services as plans
 from pactor.plans.models import Module
@@ -74,7 +75,15 @@ def create_client(
         authorization_grant_type=Application.GRANT_CLIENT_CREDENTIALS,
         skip_authorization=True,
     )
+    client_uuid = uuid.uuid4()
+    service_user = User.objects.create_user(
+        f"integracao.{client_uuid}@integracoes.invalid",
+        None,
+        full_name=f"{name.strip()[:180]} (integração)",
+        is_active=False,
+    )
     client = IntegrationClient.objects.create(
+        id=client_uuid,
         organization_id=organization_id,
         application_id=application.id,
         oauth_client_id=client_id,
@@ -82,6 +91,7 @@ def create_client(
         roles=[r.value for r in parsed_roles],
         scopes=wanted,
         created_by_id=principal.actor_id,
+        service_user=service_user,
     )
     IntegrationRoute.objects.create(
         application_id=application.id,
@@ -131,7 +141,9 @@ def principal_for_token(token: AccessToken) -> Principal:
     granted = set(token.scope.split()) & set(client.scopes)
     return Principal(
         organization_id=client.organization_id,
-        actor_id=client.id,
+        # A integração age como seu usuário de serviço: autorias e auditoria
+        # apontam para um usuário real, que não entra e não é membro.
+        actor_id=client.service_user_id,
         kind=PrincipalKind.INTEGRATION,
         roles=frozenset(Role(r) for r in client.roles),
         scopes=frozenset(granted),

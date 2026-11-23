@@ -24,6 +24,11 @@ class IntegrationClient(TenantModel):
     roles = ArrayField(models.CharField(max_length=20, choices=ROLE_CHOICES), default=list)
     scopes = ArrayField(models.CharField(max_length=40), default=list)
     created_by = models.ForeignKey("identity.User", on_delete=models.PROTECT, related_name="+")
+    # Usuário de serviço (inativo, sem senha e sem associação) que identifica a
+    # integração como autora de solicitações, eventos e registros de auditoria.
+    service_user = models.OneToOneField(
+        "identity.User", on_delete=models.PROTECT, related_name="integration_client"
+    )
     revoked_at = models.DateTimeField(null=True, blank=True)
 
     def __str__(self) -> str:
