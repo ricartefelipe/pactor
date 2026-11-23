@@ -138,6 +138,12 @@ module = [
 disallow_any_explicit = false
 
 [[tool.mypy.overrides]]
+# Extensões do drf-spectacular são registradas por __init_subclass__, que não
+# tem anotações na biblioteca; a exceção vale somente para este módulo.
+module = ["pactor.access.schema"]
+disallow_untyped_calls = false
+
+[[tool.mypy.overrides]]
 # Bibliotecas sem stubs publicados; o uso fica encapsulado em adaptadores.
 module = ["pypdf.*", "docx.*", "lxml.*", "allauth.*", "oauth2_provider.*", "csp.*", "pythonjsonlogger.*"]
 ignore_missing_imports = true
@@ -258,6 +264,9 @@ include = [
     "src/pactor/search/services.py",
     "src/pactor/search/indexing.py",
     "src/pactor/search/reports.py",
+    "src/pactor/integrations/services.py",
+    "src/pactor/access/authentication.py",
+    "src/pactor/access/permissions.py",
 ]
 exclude = []
 min_lines = 95.0
