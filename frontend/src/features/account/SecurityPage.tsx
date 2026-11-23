@@ -7,6 +7,7 @@ import { ApiError, errorMessage } from "../../api/errors";
 import { ME_KEY, useSession } from "../../auth/session";
 import { FormError, TextField, textOf } from "../../components/forms";
 import { useNotify } from "../../components/notifications";
+import { QrCode } from "../../components/QrCode";
 import { QueryView } from "../../components/states";
 import { Button, PageHeader, Section } from "../../components/ui";
 import { safeNext } from "../../lib/navigation";
@@ -102,8 +103,15 @@ export function SecurityPage() {
             ) : (
               <>
                 <p>
-                  Cadastre a chave abaixo em um aplicativo autenticador e informe o código gerado.
+                  Leia o QR code com um aplicativo autenticador (ou digite a chave) e informe o
+                  código gerado.
                 </p>
+                {status.uri && (
+                  <QrCode
+                    text={status.uri}
+                    label="QR code para cadastrar o Pactor no aplicativo autenticador"
+                  />
+                )}
                 <p>
                   Chave: <code className="secret">{status.secret}</code>
                 </p>
