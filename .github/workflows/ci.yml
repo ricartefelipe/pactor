@@ -147,7 +147,7 @@ jobs:
       - name: Migrations em banco limpo
         run: uv run python manage.py migrate --noinput
       - name: pytest (persistência, casos de uso, HTTP, concorrência)
-        run: uv run pytest -n 4 -m "not infra" --cov --cov-report=
+        run: uv run pytest -n 4 -m "not infra and not external" --cov --cov-report=
       - name: pytest com worker Celery real (RabbitMQ, Redis, Mailpit)
         run: |
           mkdir -p var
