@@ -56,3 +56,20 @@ export function decimalText(raw: string): string {
   const text = raw.trim();
   return text.includes(",") && !text.includes(".") ? text.replace(",", ".") : text;
 }
+
+/** Primeiro caractere completo (ponto de código), sem partir pares substitutos. */
+function firstCharacter(text: string): string {
+  return Array.from(text)[0] ?? "";
+}
+
+/**
+ * Iniciais para o avatar: primeiro e último nome, ignorando palavras que não
+ * começam por letra ("João da Silva" → "JS"). Sem nome, usa o e-mail.
+ */
+export function initials(name: string, email: string): string {
+  const words = name.split(/[\s—-]+/).filter((word) => /^\p{L}/u.test(word));
+  const first = words[0];
+  const last = words.length > 1 ? words[words.length - 1] : undefined;
+  const letters = [first, last].map((word) => (word ? firstCharacter(word) : "")).join("");
+  return (letters || firstCharacter(email)).toUpperCase();
+}

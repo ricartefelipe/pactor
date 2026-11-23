@@ -1,12 +1,30 @@
 import { describe, expect, it } from "vitest";
 
-import { addDaysIso, decimalText, formatBytes, formatDate, formatMoney, todayIso } from "./format";
+import {
+  addDaysIso,
+  decimalText,
+  formatBytes,
+  formatDate,
+  formatMoney,
+  initials,
+  todayIso,
+} from "./format";
 import { CONTRACT_TYPE, enumValue, labelOf, options } from "./labels";
 import { safeNext } from "./navigation";
 import { snippetParts } from "./snippet";
 import { generationValues, templateFields } from "./templateDefinition";
 
 describe("formatação", () => {
+  it("monta as iniciais do avatar a partir do nome, ignorando separadores", () => {
+    expect(initials("João da Silva", "j@x.test")).toBe("JS");
+    expect(initials("Maria dos Santos", "m@x.test")).toBe("MS");
+    expect(initials("ana", "a@x.test")).toBe("A");
+    expect(initials("Élio Úrsula Costa", "e@x.test")).toBe("ÉC");
+    expect(initials("𝒜lice Souza", "a@x.test")).toBe("𝒜S");
+    expect(initials("", "joao@x.test")).toBe("J");
+    expect(initials("— 42", "maria@x.test")).toBe("M");
+  });
+
   it("formata datas civis sem deslocamento de fuso", () => {
     expect(formatDate("2027-01-01")).toBe("01/01/2027");
     expect(formatDate(null)).toBe("—");

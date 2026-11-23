@@ -1,4 +1,5 @@
 import type { UseQueryResult } from "@tanstack/react-query";
+import { CircleAlert, Inbox } from "lucide-react";
 import type { ReactNode } from "react";
 
 import { ApiError, errorMessage } from "../api/errors";
@@ -15,6 +16,7 @@ export function Loading({ label = "Carregando…" }: { label?: string }) {
 export function EmptyState({ title, children }: { title: string; children?: ReactNode }) {
   return (
     <div className="state state--empty">
+      <Inbox className="state__icon" aria-hidden="true" size={28} strokeWidth={1.6} />
       <p className="state__title">{title}</p>
       {children}
     </div>
@@ -25,6 +27,7 @@ export function ErrorState({ error, onRetry }: { error: unknown; onRetry?: () =>
   const requestId = error instanceof ApiError ? error.requestId : null;
   return (
     <div className="state state--error" role="alert">
+      <CircleAlert className="state__icon" aria-hidden="true" size={28} strokeWidth={1.6} />
       <p className="state__title">{errorMessage(error)}</p>
       {requestId && <p className="state__detail">Código para suporte: {requestId}</p>}
       {onRetry && (

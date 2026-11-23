@@ -52,6 +52,7 @@ dependência real; sem essa marca, o item tem código e testes locais.
 
 | Versão | Data | Conteúdo |
 | --- | --- | --- |
+| 0.3.0 | 2026-11-23 | Nova identidade visual (Inter, ícones, barra lateral, painel com indicadores, entrada em duas colunas) e runbook de backup dos documentos corrigido |
 | 0.2.0 | 2026-11-23 | QR code no TOTP, `verify_documents`, recuperação a um ponto no tempo exercitada, testes no navegador de todas as telas, checks de frontend e ponta a ponta obrigatórios |
 | 0.1.0 | 2026-11-23 | Primeira versão: todas as áreas acima, aplicação web e roteiro demonstrativo no navegador |
 
@@ -59,6 +60,8 @@ dependência real; sem essa marca, o item tem código e testes locais.
 
 | Data | Comando | Resultado |
 | --- | --- | --- |
+| 2026-11-23 | Revisão de código da versão 0.3.0 (`/code-review` sobre `release/0.3.0`) | 7 achados (1 importante: foco dos campos invisível em cores forçadas; 6 menores: linha da versão na tabela errada, iniciais com partículas do nome, abas cortadas, botões-link sem sublinhado, aviso de carregamento sob o topo no celular, barras do painel lidas em duplicidade); todos corrigidos |
+| 2026-11-23 | `make frontend-check` e `make e2e` (release 0.3.0, após a revisão) | 42 testes Vitest, `npm audit` sem vulnerabilidades, build; E2E local: 5 testes em 4,0 min, com verificações axe-core |
 | 2026-11-23 | Revisão de código da versão 0.2.0 (`/code-review` sobre `release/0.2.0`) | 7 achados (2 importantes: corrida na espera do PITR e fonte/caráter de índice ignorados em série existente; 5 menores: espera do antivírus e CSV sem verificação real no E2E, organização inexistente e arquivo adulterado na conferência, vírgula decimal); todos corrigidos com teste |
 | 2026-11-23 | `make test` (release 0.2.0, após a revisão) | 590 testes aprovados; gate core 98,54% / 92,87%; gate crítico 98,04% / 91,59%; E2E local: 5 testes em 3,4 min |
 | 2026-11-23 | Revisão de código da versão 0.1.0 (`/code-review` sobre `release/0.1.0`) | 10 achados (9 importantes: aprovação com dados alterados, término de aditivos, renovação mensal, integrações criando solicitações, reajuste duplicado ou acima do máximo, corrida na numeração de parcelas, filtros de término; 1 menor: vencimentos após 9999); todos corrigidos com teste de regressão que falha sem a correção |
