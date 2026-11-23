@@ -268,3 +268,38 @@ sequenceDiagram
 - **Solicitações** (`ContractRequest`): `submitted → in_review → converted` (ou `rejected` /
   `cancelled`), com histórico somente-inserção. Solicitantes veem apenas as próprias; gestores
   veem todas. A conversão cria o contrato preservando solicitante, contraparte, valor e datas.
+
+## Vigência, aditivos e encerramento
+
+```mermaid
+stateDiagram-v2
+  [*] --> not_started
+  not_started --> awaiting_start: assinatura com início futuro
+  not_started --> active: assinatura com início até hoje
+  awaiting_start --> active: agendador na data de início
+  active --> suspended: suspensão (se a política permitir)
+  suspended --> active: retomada
+  active --> ended: agendador após o término
+  suspended --> ended: agendador após o término
+  awaiting_start --> terminated: rescisão registrada
+  active --> terminated: rescisão registrada
+  suspended --> terminated: rescisão registrada
+  ended --> archived
+  terminated --> archived
+```
+
+- Situação de vigência é separada da elaboração e da assinatura; o banco impede vigência sem
+  assinatura (`contract_lifecycle_requires_signature`).
+- Datas de vigência são locais da organização (`zoneinfo`, fuso configurado) e os limites são
+  inclusivos: o contrato vale do dia de início ao dia de término. Término vazio = indeterminado.
+- O agendador (`pactor.contracts.advance_lifecycles`, de hora em hora) é idempotente e recupera
+  indisponibilidades: se início e término já passaram, registra as duas transições.
+- Ações manuais (suspender, retomar, rescindir, arquivar) exigem permissão, justificativa e data
+  de efeito, e geram histórico somente-inserção (`LifecycleEvent`) e auditoria.
+- **Aditivos** são contratos do tipo `amendment` ligados ao principal. Suas alterações
+  (`AmendmentChange`: valor total, término, descrição) fazem parte do snapshot aprovado e
+  assinado do aditivo e só valem depois da assinatura. O contrato original nunca é reescrito:
+  `conditions_at` aplica, em ordem (data de efeito, ordem de registro), as alterações efetivas
+  na data consultada.
+- **Limite do plano**: contratos aguardando início, vigentes, suspensos ou em assinatura contam
+  como ativos; o envio para assinatura é bloqueado ao exceder o limite.

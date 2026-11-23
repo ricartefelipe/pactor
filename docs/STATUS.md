@@ -26,6 +26,8 @@ dependência real; sem essa marca, o item tem código e testes locais.
 | Adaptador Docusign | Formato das requisições, JWT, referência, classificação de falhas, HMAC do Connect | `tests/unit/test_docusign_adapter.py` (transporte simulado; **integração real não exercitada** por falta de credenciais) |
 | Modelos | Definição validada sem execução de código, versões imutáveis, geração com versão e dados registrados | `tests/unit/test_drafting_domain.py`, `tests/integration/test_drafting_intake.py` |
 | Solicitações | Ciclo, visibilidade por solicitante, histórico somente-inserção, conversão em contrato | `tests/integration/test_drafting_intake.py` |
+| Vigência | Início futuro, indeterminado, agendador idempotente com recuperação, suspensão por política, rescisão, arquivamento, restrição no banco | `tests/unit/test_lifecycle_domain.py`, `tests/integration/test_lifecycle.py` |
+| Aditivos | Alterações no snapshot aprovado, efeito após assinatura, condições por data, original preservado | `tests/integration/test_lifecycle.py` |
 | Concorrência de revisões | Edição simultânea de rascunho e publicação simultânea | `tests/concurrency/test_revision_races.py` |
 
 ## Em andamento
@@ -36,6 +38,7 @@ dependência real; sem essa marca, o item tem código e testes locais.
 
 | Data | Comando | Resultado |
 | --- | --- | --- |
+| 2026-11-22 | `make test` (vigência e aditivos) | 407 testes aprovados; gate core 98,60% / 93,46%; gate crítico 98,27% / 92,17% |
 | 2026-11-22 | `make test` (modelos e solicitações) | 375 testes aprovados; gate core 98,56% / 93,27%; gate crítico 98,24% / 92,05% |
 | 2026-11-22 | `make mutation` (políticas, aprovações, contratos, documentos) | 645 mutantes: 604 mortos (93,6%), 41 sobreviventes analisados — mensagens de erro decoradas/sem localização e equivalentes (`zip(strict)` com tamanhos iguais, `ensure_ascii=None`, `"UTF-8"`, atribuição a `group_approved` já falso) |
 | 2026-11-22 | `make openapi-check` | Esquema válido, sem avisos |

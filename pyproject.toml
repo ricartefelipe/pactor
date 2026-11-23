@@ -188,6 +188,7 @@ only_mutate = [
     "src/pactor/contracts/domain.py",
     "src/pactor/counterparties/domain.py",
     "src/pactor/drafting/domain.py",
+    "src/pactor/contracts/lifecycle.py",
 ]
 pytest_add_cli_args_test_selection = ["tests/unit"]
 pytest_add_cli_args = ["-p", "no:cacheprovider", "-q"]
@@ -241,6 +242,8 @@ include = [
     "src/pactor/signatures/storage.py",
     "src/pactor/drafting/services.py",
     "src/pactor/intake/services.py",
+    "src/pactor/contracts/lifecycle.py",
+    "src/pactor/contracts/lifecycle_services.py",
 ]
 exclude = []
 min_lines = 95.0

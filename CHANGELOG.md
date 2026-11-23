@@ -42,6 +42,11 @@ Formato baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e
   do modelo e dos dados usados.
 - Solicitações de contrato com solicitante, departamento, tipo, contraparte, objetivo, valor
   estimado, datas, responsável, prioridade, histórico e conversão em contrato.
+- Vigência separada de elaboração e assinatura (início futuro, prazo indeterminado, suspensão
+  conforme política, rescisão registrada, encerramento automático e arquivamento), com
+  histórico e agendador idempotente.
+- Aditivos que preservam o original e resolução das condições vigentes em uma data.
+- Limite de contratos ativos do plano aplicado no envio para assinatura.
 - Validação do esquema OpenAPI sem avisos como gate da CI.
 - Mutation testing do núcleo de regras (manual e semanal).
 - Autenticação por e-mail com confirmação e MFA (django-allauth headless).
