@@ -106,7 +106,6 @@ da imagem (Trivy) e do roteiro ponta a ponta com a pilha do Compose.
 - **Recuperação a um ponto no tempo** (WAL) e conferência de hashes após uma
   restauração: existem só como procedimentos escritos; backup e restauração
   completos foram exercitados.
-- **Ativação do TOTP**: a tela mostra a chave e o endereço `otpauth`, sem QR code.
 - **Idioma**: somente português do Brasil.
 - **Ferramentas só na CI**: gitleaks e Trivy rodam apenas na CI, não no ambiente local.
 - **Mutation testing**: roda semanalmente e sob demanda, não a cada pull request.

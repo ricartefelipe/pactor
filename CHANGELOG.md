@@ -5,6 +5,11 @@ Formato baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e
 
 ## [Não lançado]
 
+### Adicionado
+
+- QR code na ativação da verificação em duas etapas, gerado no navegador como SVG acessível
+  (a chave em texto continua disponível).
+
 ## [0.1.0] - 2026-11-23
 
 Primeira versão: plataforma completa de gestão do ciclo de vida de contratos,
