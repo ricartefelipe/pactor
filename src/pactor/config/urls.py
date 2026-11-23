@@ -13,6 +13,7 @@ from pactor.counterparties.api import CounterpartyViewSet
 from pactor.deadlines import api as deadlines
 from pactor.drafting.api import TemplateViewSet
 from pactor.files import api as files
+from pactor.finance import api as finance
 from pactor.identity import api as identity
 from pactor.intake.api import RequestViewSet
 from pactor.obligations import api as obligations
@@ -57,6 +58,32 @@ api_v1 = [
         lifecycle_api.AmendmentChangesView.as_view(),
         name="contract-amendment-changes",
     ),
+    path(
+        "contracts/<uuid:contract_id>/finance",
+        finance.FinanceSummaryView.as_view(),
+        name="contract-finance",
+    ),
+    path(
+        "contracts/<uuid:contract_id>/finance/installments",
+        finance.InstallmentsView.as_view(),
+        name="contract-installments",
+    ),
+    path(
+        "contracts/<uuid:contract_id>/finance/milestones",
+        finance.MilestonesView.as_view(),
+        name="contract-milestones",
+    ),
+    path(
+        "contracts/<uuid:contract_id>/finance/adjustments",
+        finance.AdjustmentsView.as_view(),
+        name="contract-adjustments",
+    ),
+    path(
+        "installments/<uuid:installment_id>/confirm",
+        finance.ConfirmView.as_view(),
+        name="installment-confirm",
+    ),
+    path("indexes", finance.IndexValuesView.as_view(), name="index-values"),
     path("calendar", deadlines.CalendarView.as_view(), name="calendar"),
     path("alerts", deadlines.AlertsView.as_view(), name="alerts"),
     path("holiday-calendars", deadlines.HolidayCalendarsView.as_view(), name="holiday-calendars"),
