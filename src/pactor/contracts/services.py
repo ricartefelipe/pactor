@@ -19,6 +19,7 @@ from django.utils import timezone
 
 from pactor.access.authorization import authorize
 from pactor.access.policies import Confidentiality, Permission, Principal
+from pactor.approvals import services as approvals
 from pactor.audit import services as audit
 from pactor.contracts.diff import TextDiff, compare_text
 from pactor.contracts.domain import (
@@ -274,7 +275,7 @@ def update_metadata(
         before[field_name] = getattr(contract, field_name)
         setattr(contract, field_name, value)
     _validate_dates(contract.planned_start, contract.planned_end)
-    invalidated = _invalidate_approval(contract)
+    invalidated = _invalidate_approval(contract, reason="metadata_changed")
     contract.version += 1
     contract.updated_at = timezone.now()
     contract.save()
@@ -293,11 +294,16 @@ def update_metadata(
     return contract
 
 
-def _invalidate_approval(contract: Contract) -> bool:
-    """Devolve o contrato à elaboração quando o conteúdo aprovado deixa de valer."""
+def _invalidate_approval(contract: Contract, *, reason: str) -> bool:
+    """Devolve o contrato à elaboração quando o conteúdo aprovado deixa de valer.
+
+    Rodadas abertas para o conteúdo anterior são encerradas na mesma
+    transação; uma aprovação concedida antes não cobre o novo conteúdo.
+    """
     status = DraftingStatus(contract.drafting_status)
     if status not in {DraftingStatus.IN_APPROVAL, DraftingStatus.APPROVED}:
         return False
+    approvals.supersede_open_rounds(contract, reason=reason)
     contract.drafting_status = DraftingStatus.DRAFT.value
     contract.approved_revision = None
     contract.approved_fingerprint = ""
@@ -413,7 +419,7 @@ def publish_revision(
         template_version_id=template_version_id,
         generation_data=dict(generation_data) if generation_data is not None else None,
     )
-    invalidated = _invalidate_approval(contract)
+    invalidated = _invalidate_approval(contract, reason="revision_published")
     contract.current_revision = revision
     contract.version += 1
     contract.updated_at = timezone.now()
