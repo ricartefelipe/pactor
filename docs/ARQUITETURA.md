@@ -154,3 +154,39 @@ sequenceDiagram
   de pelo menos uma vez, com deduplicação nas repetições posteriores.
 - Retentativas: até 6, backoff exponencial (5s a 10min). Falhas ficam em `ConsumerFailure`.
 - Cada task fecha conexões antigas antes e depois e abre o tenant do evento.
+
+## Contratos, rascunho e revisões
+
+```mermaid
+stateDiagram-v2
+  [*] --> draft
+  draft --> in_approval: envio para aprovação
+  in_approval --> draft: ajustes, rejeição ou nova revisão
+  in_approval --> approved: quórum atingido
+  approved --> draft: nova revisão ou metadados alterados
+  approved --> signing: envio da revisão aprovada
+  signing --> signed: envelope concluído
+  signing --> approved: envelope anulado ou recusado
+  draft --> cancelled
+  in_approval --> cancelled
+  approved --> cancelled
+  signing --> cancelled
+  signed --> [*]
+  cancelled --> [*]
+```
+
+- **Rascunho** (`ContractDraft`): único por contrato, editável, com `version` para
+  concorrência otimista (`UPDATE ... WHERE version = esperado`; zero linhas ⇒ `stale_version`).
+- **Revisão** (`Revision`): publicada a partir do rascunho exigindo a versão do rascunho que
+  o autor viu. Guarda conteúdo, SHA-256 do conteúdo, snapshot de metadados relevantes,
+  anexos (com hash), autor, data, revisão anterior e **fingerprint** do conjunto submetido.
+  Um trigger no banco impede `UPDATE` e `DELETE`.
+- **Fingerprint**: SHA-256 do JSON canônico com hash do conteúdo, metadados (título, tipo,
+  contraparte e documento, papéis das partes, departamento, classificação, valor, datas,
+  contrato principal) e anexos. Identifica os bytes e dados registrados; não substitui
+  assinatura digital nem constitui comprovação jurídica independente.
+- **Bloqueio**: publicação, alteração de metadados e compartilhamento travam a linha do
+  contrato (`SELECT ... FOR UPDATE` sem joins); relações são lidas depois do lock para não
+  usar dados anteriores a um commit concorrente.
+- **Comparação**: textual, por linhas (`difflib`); não há comparação semântica.
+- **Referências**: `CT-<ano>-<sequência>` por organização, com numerador travado.

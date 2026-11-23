@@ -22,5 +22,10 @@ Formato baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e
 - Auditoria somente-inserção com redação de dados sensíveis.
 - Transactional Outbox com relay recuperável, consumidores deduplicados e registro de falhas.
 - Idempotência persistida por chave, escopo e fingerprint.
+- Contrapartes (PF/PJ) com validação de CPF/CNPJ, contatos, endereços e representantes.
+- Contratos com partes e papéis, classificação de confidencialidade, referência sequencial,
+  rascunho com concorrência otimista, revisões imutáveis com fingerprint, comparação textual,
+  comentários por linha e compartilhamento com usuários, equipes e participantes externos.
+- Visibilidade de contratos aplicada em consulta, equivalente à política (teste de propriedade).
 - Autenticação por e-mail com confirmação e MFA (django-allauth headless).
 - Pipeline de CI com lockfile, Ruff, mypy, pip-audit, Bandit, gitleaks, testes, gates de cobertura e análise da imagem.
