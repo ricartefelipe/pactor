@@ -187,6 +187,7 @@ only_mutate = [
     "src/pactor/approvals/domain.py",
     "src/pactor/contracts/domain.py",
     "src/pactor/counterparties/domain.py",
+    "src/pactor/drafting/domain.py",
 ]
 pytest_add_cli_args_test_selection = ["tests/unit"]
 pytest_add_cli_args = ["-p", "no:cacheprovider", "-q"]
@@ -238,6 +239,8 @@ include = [
     "src/pactor/signatures/simulator.py",
     "src/pactor/signatures/docusign.py",
     "src/pactor/signatures/storage.py",
+    "src/pactor/drafting/services.py",
+    "src/pactor/intake/services.py",
 ]
 exclude = []
 min_lines = 95.0
