@@ -37,6 +37,11 @@ Formato baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e
   participante, webhooks com HMAC idempotentes e tolerantes a desordem, recuperação de timeout
   por referência, cancelamento, documentos enviados e retornados preservados com hash e
   reconciliação periódica.
+- Modelos de contrato versionados como dados controlados (campos tipados, seções opcionais,
+  marcadores restritos a variáveis declaradas) e geração de revisões com registro da versão
+  do modelo e dos dados usados.
+- Solicitações de contrato com solicitante, departamento, tipo, contraparte, objetivo, valor
+  estimado, datas, responsável, prioridade, histórico e conversão em contrato.
 - Validação do esquema OpenAPI sem avisos como gate da CI.
 - Mutation testing do núcleo de regras (manual e semanal).
 - Autenticação por e-mail com confirmação e MFA (django-allauth headless).

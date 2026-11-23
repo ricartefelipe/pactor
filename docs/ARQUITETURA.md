@@ -253,3 +253,18 @@ sequenceDiagram
   downloads passam por autorização do contrato e conferem o hash antes de entregar os bytes.
 - **Recuperação**: `reconcile` (periódico) consulta o provedor para envelopes sem confirmação ou sem
   eventos recentes; `process_pending_events` reaplica eventos gravados e não processados.
+
+## Modelos de contrato e solicitações
+
+- **Modelo** (`ContractTemplate`): rascunho da definição com concorrência otimista; **versões**
+  (`TemplateVersion`) são publicadas como novas linhas somente-inserção.
+- **Definição**: campos tipados (`text`, `date`, `decimal`, `boolean`, `choice`), seções com
+  marcadores `{{chave}}` e seções opcionais condicionadas a um campo booleano. Qualquer outra
+  sintaxe entre chaves é recusada na validação; não há expressões, filtros ou execução de código.
+  A substituição é feita em uma única passagem: valores do usuário entram como texto literal.
+- **Geração**: valida os dados contra a versão do modelo, renderiza o texto e publica uma nova
+  revisão (`source = template`) que registra a versão do modelo e os dados canônicos usados.
+  Publicar outra versão do modelo não altera revisões existentes (imutáveis).
+- **Solicitações** (`ContractRequest`): `submitted → in_review → converted` (ou `rejected` /
+  `cancelled`), com histórico somente-inserção. Solicitantes veem apenas as próprias; gestores
+  veem todas. A conversão cria o contrato preservando solicitante, contraparte, valor e datas.

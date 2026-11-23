@@ -24,6 +24,8 @@ dependência real; sem essa marca, o item tem código e testes locais.
 | Assinaturas (simulador) | Envio da revisão aprovada, hash do enviado/retornado, ordem, participante × envelope, webhook duplicado e fora de ordem, envelope antigo, timeout após criação, indisponibilidade, cancelamento, reconciliação | `tests/integration/test_signatures.py`, `test_signature_rejections.py` |
 | Assinaturas (worker real) | Outbox → RabbitMQ → worker `integrations` → simulador | `tests/infra/test_signature_pipeline.py` (exercitado) |
 | Adaptador Docusign | Formato das requisições, JWT, referência, classificação de falhas, HMAC do Connect | `tests/unit/test_docusign_adapter.py` (transporte simulado; **integração real não exercitada** por falta de credenciais) |
+| Modelos | Definição validada sem execução de código, versões imutáveis, geração com versão e dados registrados | `tests/unit/test_drafting_domain.py`, `tests/integration/test_drafting_intake.py` |
+| Solicitações | Ciclo, visibilidade por solicitante, histórico somente-inserção, conversão em contrato | `tests/integration/test_drafting_intake.py` |
 | Concorrência de revisões | Edição simultânea de rascunho e publicação simultânea | `tests/concurrency/test_revision_races.py` |
 
 ## Em andamento
@@ -34,6 +36,7 @@ dependência real; sem essa marca, o item tem código e testes locais.
 
 | Data | Comando | Resultado |
 | --- | --- | --- |
+| 2026-11-22 | `make test` (modelos e solicitações) | 375 testes aprovados; gate core 98,56% / 93,27%; gate crítico 98,24% / 92,05% |
 | 2026-11-22 | `make mutation` (políticas, aprovações, contratos, documentos) | 645 mutantes: 604 mortos (93,6%), 41 sobreviventes analisados — mensagens de erro decoradas/sem localização e equivalentes (`zip(strict)` com tamanhos iguais, `ensure_ascii=None`, `"UTF-8"`, atribuição a `group_approved` já falso) |
 | 2026-11-22 | `make openapi-check` | Esquema válido, sem avisos |
 | 2026-11-22 | `make test` | 279 testes aprovados; gate core 99,08% / 95,76%; gate crítico 98,70% / 94,37% |
