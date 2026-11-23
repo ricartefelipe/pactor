@@ -56,3 +56,13 @@ export function decimalText(raw: string): string {
   const text = raw.trim();
   return text.includes(",") && !text.includes(".") ? text.replace(",", ".") : text;
 }
+
+/** Iniciais para o avatar (duas primeiras palavras do nome, ou o e-mail). */
+export function initials(name: string, email: string): string {
+  const words = name
+    .split(/[\s—-]+/)
+    .filter((word) => /^\p{L}/u.test(word))
+    .slice(0, 2);
+  const letters = words.map((word) => word.charAt(0)).join("");
+  return (letters || email.charAt(0)).toUpperCase();
+}

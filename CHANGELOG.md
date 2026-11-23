@@ -5,6 +5,14 @@ Formato baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e
 
 ## [Não lançado]
 
+### Alterado
+
+- Nova identidade visual: fonte Inter empacotada (compatível com a CSP), paleta índigo e
+  ardósia, barra lateral escura com ícones, topo com organização ativa e avatar, cartões,
+  formulários, tabelas, selos, abas, avisos e diálogos redesenhados, mantendo contraste AA.
+- Painel com indicadores clicáveis e barras de distribuição; tela de entrada em duas colunas
+  com o painel da marca.
+
 ## [0.2.0] - 2026-11-23
 
 Operação e verificação: QR code no TOTP, conferência de integridade dos documentos,
