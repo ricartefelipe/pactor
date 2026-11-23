@@ -15,8 +15,9 @@ flowchart LR
 
 ```mermaid
 flowchart TB
-  browser[SPA React servida na mesma origem] --> web
-  web[web: Gunicorn + Django/DRF] --> pg[(PostgreSQL 17 + RLS)]
+  browser[Aplicação web React no navegador] -->|mesma origem: /api/v1, /_allauth| web
+  web[web: Gunicorn + Django/DRF + whitenoise] --> pg[(PostgreSQL 17 + RLS)]
+  webhook[Provedor de assinatura] -->|webhooks com HMAC| web
   web --> redis[(Redis: cache, rate limit)]
   web -->|outbox no mesmo commit| pg
   beat[scheduler: Celery beat] --> mq[(RabbitMQ)]
@@ -49,6 +50,38 @@ flowchart TB
 | `pactor.plans` | Planos comerciais, trial e limites (assinatura da organização no Pactor) |
 | `pactor.audit` | Trilha de auditoria somente-inserção e bloqueios de retenção |
 | `pactor.notifications` | Consumidores que enviam e-mails |
+
+## Aplicação web
+
+- **Entrega**: o Vite compila a aplicação no estágio `frontend` do Dockerfile, e o
+  resultado vai para `/static/` (whitenoise, com nomes com hash). As demais rotas
+  recebem o `index.html` sem cache, exceto os prefixos de serviço (`api`,
+  `_allauth`, `static`, `webhooks`, `o`, `health`, `metrics` e o admin), que
+  continuam respondendo 404 quando inexistentes. A CSP só permite scripts e
+  estilos da própria origem, e o HTML gerado não tem nada inline.
+- **Autenticação**: allauth headless no cliente "browser". A sessão fica num cookie
+  HttpOnly e o token CSRF é lido do cookie e enviado em `X-CSRFToken` nas requisições
+  que alteram estado. O login tem duas etapas quando o usuário tem TOTP, e o destino
+  pós-login aceita só caminhos internos.
+- **Contrato com a API**: os tipos TypeScript são gerados do esquema OpenAPI
+  (`openapi-typescript`) e verificados na CI (`npm run check:api`). Mudanças na
+  API que quebram o frontend falham na compilação.
+- **Estado do servidor**: TanStack Query, com chaves prefixadas pela organização
+  ativa. Na troca de organização, todo o cache de dados é descartado; só as
+  consultas de sessão permanecem, com o novo valor.
+- **Erros**: um único formato (`ApiError`) para as respostas da API e do allauth,
+  com mensagens por campo nos formulários e código de suporte (`request_id`) nas
+  falhas.
+- **Operações idempotentes**: criação de contrato, publicação de revisão, geração
+  por modelo, envio para aprovação, voto e envio para assinatura enviam
+  `Idempotency-Key`. A chave é mantida em falhas de rede e renovada após recusas
+  definitivas.
+- **Acessibilidade**: HTML semântico, rótulos associados, erros e dicas em
+  `aria-describedby`, regiões `aria-live` para os resultados, link para pular ao
+  conteúdo, foco no conteúdo a cada navegação e diálogos nativos (`<dialog>`).
+  Os testes no navegador rodam o axe-core (WCAG 2 A/AA) nas telas principais.
+- **Carregamento**: páginas carregadas sob demanda. O pacote inicial leva apenas
+  login, painel e a estrutura da aplicação.
 
 Regras de negócio ficam em módulos sem dependência de Django (`access/policies.py`)
 ou em serviços com limites transacionais explícitos (`*/services.py`). Views apenas
