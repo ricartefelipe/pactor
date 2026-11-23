@@ -86,4 +86,3 @@ dependência real; sem essa marca, o item tem código e testes locais.
 - Telas da aplicação web fora do roteiro demonstrativo (valores, anexos, acessos,
   workflows, integrações, operação, estrutura) têm tipos verificados, lint e as
   regras cobertas no backend, mas ainda não têm teste de interface próprio.
-- Ativação do TOTP sem QR code (a tela mostra a chave e o endereço `otpauth`).

@@ -105,7 +105,6 @@ da imagem (Trivy) e do roteiro ponta a ponta com a pilha do Compose.
   credenciais. O teste existe (`make test-external`) e falha sem elas.
 - **Recuperação a um ponto no tempo** (WAL): existe só como procedimento escrito;
   backup, restauração e conferência de integridade dos documentos foram exercitados.
-- **Ativação do TOTP**: a tela mostra a chave e o endereço `otpauth`, sem QR code.
 - **Idioma**: somente português do Brasil.
 - **Ferramentas só na CI**: gitleaks e Trivy rodam apenas na CI, não no ambiente local.
 - **Mutation testing**: roda semanalmente e sob demanda, não a cada pull request.

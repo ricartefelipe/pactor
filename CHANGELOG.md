@@ -7,6 +7,8 @@ Formato baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e
 
 ### Adicionado
 
+- QR code na ativação da verificação em duas etapas, gerado no navegador como SVG acessível
+  (a chave em texto continua disponível).
 - Comando `verify_documents`: confere arquivos, prévias e documentos de assinatura contra
   SHA-256 e tamanho registrados (somente leitura, com erro em caso de divergência).
 
