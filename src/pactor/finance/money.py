@@ -39,10 +39,12 @@ def parse_amount(raw: object) -> Decimal:
         raise MoneyError("valor inválido") from exc
     if not value.is_finite():
         raise MoneyError("valor deve ser finito")
-    if value != value.quantize(CENT):
-        raise MoneyError("valor com mais de duas casas decimais")
+    # Limites antes da quantização: expoentes grandes (ex.: "1e30") excedem a
+    # precisão do contexto decimal e não chegam a ser arredondados.
     if value < 0 or value > MAX_AMOUNT:
         raise MoneyError("valor fora dos limites")
+    if value != value.quantize(CENT):
+        raise MoneyError("valor com mais de duas casas decimais")
     return quantize(value)
 
 
@@ -79,10 +81,12 @@ def parse_rate(raw: object) -> Decimal:
         value = Decimal(raw.strip()) if isinstance(raw, str) else raw
     except InvalidOperation as exc:
         raise MoneyError("taxa inválida") from exc
-    if not value.is_finite() or value != value.quantize(Decimal("0.000001")):
-        raise MoneyError("taxa deve ser finita, com até 6 casas decimais")
+    if not value.is_finite():
+        raise MoneyError("taxa deve ser finita")
     if not -MAX_RATE_PERCENT < value < MAX_RATE_PERCENT:
         raise MoneyError("taxa fora dos limites")
+    if value != value.quantize(Decimal("0.000001")):
+        raise MoneyError("taxa com mais de 6 casas decimais")
     return value
 
 
@@ -91,4 +95,6 @@ def adjust(amount: Decimal, rate_percent: Decimal) -> Decimal:
     result = quantize(amount * (Decimal(1) + rate_percent / Decimal(100)))
     if result < 0:
         raise MoneyError("reajuste resultaria em valor negativo")
+    if result > MAX_AMOUNT:
+        raise MoneyError("reajuste ultrapassaria o valor máximo permitido")
     return result
