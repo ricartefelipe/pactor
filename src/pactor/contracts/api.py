@@ -70,7 +70,7 @@ class ContractSerializer(serializers.ModelSerializer[Contract]):
     counterparty_name = serializers.CharField(source="counterparty.name", read_only=True)
     department_name = serializers.CharField(source="department.name", read_only=True, default=None)
     owner_name = serializers.CharField(source="owner.full_name", read_only=True)
-    current_revision = RevisionSummarySerializer(read_only=True)
+    current_revision = RevisionSummarySerializer(read_only=True, allow_null=True)
     approved_revision_id = serializers.UUIDField(read_only=True)
     can_edit = serializers.SerializerMethodField()
 

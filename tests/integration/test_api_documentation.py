@@ -87,3 +87,14 @@ def test_operations_response_matches_its_documentation() -> None:
     org, owner = factories.organization()
     response = factories.client_for(owner, org).post("/api/v1/operations/dead-events/requeue")
     assert_matches(RequeuedSerializer(), response.json())
+
+
+def test_contract_without_revision_is_documented_as_nullable() -> None:
+    org, _ = factories.organization()
+    manager = factories.member(org, [Role.CONTRACT_MANAGER])
+    contract = factories.contract(org, manager)
+    client = factories.client_for(manager, org)
+    body = client.get(f"/api/v1/contracts/{contract.id}").json()
+    assert body["current_revision"] is None
+    schema = client.get("/api/v1/schema", HTTP_ACCEPT="application/vnd.oai.openapi+json").json()
+    assert schema["components"]["schemas"]["Contract"]["properties"]["current_revision"]["nullable"]
