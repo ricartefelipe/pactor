@@ -19,6 +19,9 @@ class Route:
 
 ROUTES: Mapping[str, tuple[Route, ...]] = MappingProxyType(
     {
+        "contracts.created": (Route("pactor.search.index_contract", "default"),),
+        "contracts.updated": (Route("pactor.search.index_contract", "default"),),
+        "contracts.revision_published": (Route("pactor.search.index_revision", "default"),),
         "identity.invitation_created": (
             Route("pactor.notifications.invitation_email", "notifications"),
         ),
