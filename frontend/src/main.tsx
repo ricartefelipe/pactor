@@ -7,6 +7,7 @@ import { ApiError } from "./api/errors";
 import { router } from "./app/router";
 import { AUTH_KEY } from "./auth/session";
 import { NotificationsProvider } from "./components/notifications";
+import "@fontsource-variable/inter";
 import "./styles.css";
 
 function handleUnauthenticated(error: unknown) {
