@@ -120,6 +120,13 @@ jobs:
       mailpit:
         image: axllent/mailpit:v1.34.0
         ports: ["1025:1025", "8025:8025"]
+      clamav:
+        # A inicialização baixa a base de assinaturas; o job espera o clamd ficar saudável.
+        image: clamav/clamav:1.4.7-debian13-slim
+        ports: ["3310:3310"]
+        options: >-
+          --health-cmd "clamdcheck.sh" --health-interval 15s --health-timeout 10s
+          --health-retries 40 --health-start-period 120s
     env:
       POSTGRES_HOST: localhost
       POSTGRES_USER: pactor_owner
@@ -129,6 +136,8 @@ jobs:
       REDIS_URL: redis://localhost:6379/0
       EMAIL_HOST: localhost
       EMAIL_PORT: "1025"
+      CLAMAV_HOST: localhost
+      CLAMAV_PORT: "3310"
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: astral-sh/setup-uv@1db35dd8eee11c5894872e0b383ae6c406cf738d # v10.4.0
