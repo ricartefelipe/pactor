@@ -1,6 +1,6 @@
 [project]
 name = "pactor"
-version = "0.3.0"
+version = "0.3.1"
 description = "Plataforma SaaS B2B multitenant para gestão do ciclo de vida de contratos."
 readme = "README.md"
 requires-python = ">=3.13,<3.14"
