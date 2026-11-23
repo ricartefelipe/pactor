@@ -46,11 +46,14 @@ def principal_for_membership(membership: Membership, *, mfa_satisfied: bool) -> 
 
 
 def load_active_membership(user: User, organization_id: uuid.UUID) -> Membership | None:
-    """Busca a associação ativa. Exige transação aberta (vincula o usuário)."""
+    """Busca a associação ativa. Exige transação aberta (vincula o usuário).
+
+    Os vínculos com departamentos e equipes não são pré-carregados aqui: são
+    tabelas de tenant e só ficam visíveis depois de ``bind_tenant``.
+    """
     bind_user(user.id)
     return (
         Membership.objects.select_related("organization")
-        .prefetch_related("department_links", "team_links")
         .filter(
             user=user,
             organization_id=organization_id,
@@ -72,4 +75,5 @@ def activate_request_principal(request: HttpRequest | Request, user: User) -> Pr
         request.session.pop(ACTIVE_ORGANIZATION_SESSION_KEY, None)
         raise NoActiveOrganizationError("Acesso à organização não está mais disponível.")
     bind_tenant(organization_id)
+    # Após o vínculo do tenant, os departamentos e equipes da associação são lidos.
     return principal_for_membership(membership, mfa_satisfied=session_used_mfa(request, user))

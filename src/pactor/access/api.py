@@ -8,9 +8,11 @@ consultas da requisição passam pelas policies de RLS e expiram com ela.
 
 from __future__ import annotations
 
+import json
 from collections.abc import Callable
 from typing import TYPE_CHECKING, Any, ClassVar
 
+from rest_framework.renderers import JSONRenderer
 from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -71,7 +73,12 @@ class TenantScopedMixin(APIView):
             replay["Idempotent-Replayed"] = "true"
             return replay
         response = operation()
-        body = response.data if isinstance(response.data, dict | list) else None
+        # Grava exatamente o JSON que o cliente recebe (UUIDs, datas e decimais
+        # já convertidos), para que a repetição devolva a mesma representação.
+        rendered = (
+            json.loads(JSONRenderer().render(response.data)) if response.data is not None else None
+        )
+        body = rendered if isinstance(rendered, dict | list) else None
         idempotency.complete(
             actor_id=self.principal.actor_id,
             scope=scope,
