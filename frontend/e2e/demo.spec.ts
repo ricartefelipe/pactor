@@ -16,10 +16,13 @@ const DEADLINE_TITLE = `Decisão de renovação ${String(RUN).slice(-6)}`;
 
 async function openTab(page: Page, contractUrl: string, tab: string): Promise<void> {
   await page.goto(contractUrl);
-  await page
+  const link = page
     .getByRole("navigation", { name: "Seções do contrato" })
-    .getByRole("link", { name: tab })
-    .click();
+    .getByRole("link", { name: tab });
+  await link.click();
+  // A aba é carregada sob demanda: até lá, a anterior continua na tela.
+  await expect(link).toHaveAttribute("aria-current", "page");
+  await expect(page.locator("main")).not.toHaveAttribute("aria-busy", "true");
 }
 
 async function notice(page: Page, text: string | RegExp): Promise<void> {
