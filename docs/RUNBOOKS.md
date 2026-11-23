@@ -94,15 +94,25 @@ arquivo aparece como erro de leitura e deve ser investigado.
 **Exercitado em 23/11/2026**: um arquivo de teste foi gravado no volume,
 arquivado, restaurado em um volume novo e lido com conteúdo idêntico.
 
+Monte o volume em um caminho que não exista na imagem auxiliar e com
+`volume-nocopy`. Se um volume vazio for montado sobre um diretório da imagem
+(como `/media`), o Docker copia esse diretório para dentro do volume e a raiz
+passa a pertencer ao `root`; a aplicação, que roda como o usuário 10001, deixa
+de conseguir gravar anexos e documentos de assinatura.
+
 ```sh
 # Backup (volume montado somente leitura)
-docker run --rm -v pactor_media:/media:ro -v "$PWD/backups:/backup" \
-  postgres:17.12-alpine3.24 tar -C /media -czf /backup/media-$(date +%Y%m%dT%H%M%S).tar.gz .
+docker run --rm \
+  --mount type=volume,src=pactor_media,dst=/dados,readonly,volume-nocopy \
+  -v "$PWD/backups:/backup" \
+  postgres:17.12-alpine3.24 tar -C /dados -czf /backup/media-$(date +%Y%m%dT%H%M%S).tar.gz .
 
-# Restauração em volume novo
+# Restauração em volume novo, devolvendo os arquivos ao usuário da aplicação
 docker volume create pactor_media_restore
-docker run --rm -v pactor_media_restore:/media -v "$PWD/backups:/backup:ro" \
-  postgres:17.12-alpine3.24 tar -C /media -xzf /backup/<arquivo>.tar.gz
+docker run --rm \
+  --mount type=volume,src=pactor_media_restore,dst=/dados,volume-nocopy \
+  -v "$PWD/backups:/backup:ro" \
+  postgres:17.12-alpine3.24 sh -c 'tar -C /dados -xzf /backup/<arquivo>.tar.gz && chown -R 10001:10001 /dados'
 ```
 
 Depois de restaurar, aponte o serviço para o volume novo ou copie o conteúdo

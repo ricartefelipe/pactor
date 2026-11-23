@@ -13,6 +13,12 @@ Formato baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e
 - Painel com indicadores clicáveis e barras de distribuição; tela de entrada em duas colunas
   com o painel da marca.
 
+### Corrigido
+
+- Runbook de backup dos documentos: o volume passa a ser montado com `volume-nocopy` em um
+  caminho inexistente na imagem auxiliar. Montado em `/media`, um volume vazio recebia os
+  diretórios da imagem e ficava com a raiz do `root`, impedindo a aplicação de gravar arquivos.
+
 ## [0.2.0] - 2026-11-23
 
 Operação e verificação: QR code no TOTP, conferência de integridade dos documentos,
