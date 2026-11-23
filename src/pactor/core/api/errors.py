@@ -12,7 +12,6 @@ from collections.abc import Mapping
 from django.core.exceptions import PermissionDenied as DjangoPermissionDenied
 from django.http import Http404
 from rest_framework import exceptions as drf_exceptions
-from rest_framework import status
 from rest_framework.response import Response
 from rest_framework.views import exception_handler as drf_exception_handler
 from rest_framework.views import set_rollback
@@ -70,6 +69,4 @@ def exception_handler(exc: Exception, context: Mapping[str, object]) -> Response
     else:
         body = error_body(_drf_code(exc), str(exc.detail))
     response.data = body
-    if response.status_code == status.HTTP_401_UNAUTHORIZED:
-        response["WWW-Authenticate"] = 'Session realm="pactor"'
     return response

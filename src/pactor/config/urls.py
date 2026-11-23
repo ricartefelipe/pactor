@@ -2,6 +2,7 @@ from django.conf import settings
 from django.contrib import admin
 from django.urls import include, path
 from drf_spectacular.views import SpectacularAPIView
+from oauth2_provider import views as oauth_views
 from rest_framework.routers import SimpleRouter
 
 from pactor.approvals.api import ApprovalRoundViewSet, DelegationViewSet, WorkflowViewSet
@@ -16,6 +17,7 @@ from pactor.files import api as files
 from pactor.finance import api as finance
 from pactor.identity import api as identity
 from pactor.intake.api import RequestViewSet
+from pactor.integrations.api import IntegrationViewSet
 from pactor.obligations import api as obligations
 from pactor.search import api as search
 from pactor.signatures import webhooks
@@ -36,6 +38,7 @@ router.register("delegations", DelegationViewSet, basename="delegation")
 router.register("envelopes", EnvelopeViewSet, basename="envelope")
 router.register("templates", TemplateViewSet, basename="template")
 router.register("requests", RequestViewSet, basename="request")
+router.register("integrations", IntegrationViewSet, basename="integration")
 
 api_v1 = [
     path("me", identity.MeView.as_view(), name="me"),
@@ -160,6 +163,9 @@ urlpatterns = [
     path("health/live", health.live, name="health-live"),
     path("health/ready", health.ready, name="health-ready"),
     path("_allauth/", include("allauth.headless.urls")),
+    # Somente os endpoints de token do servidor OAuth; a gestão de aplicações é pela API do Pactor.
+    path("o/token/", oauth_views.TokenView.as_view(), name="oauth-token"),
+    path("o/revoke_token/", oauth_views.RevokeTokenView.as_view(), name="oauth-revoke"),
     path("webhooks/signatures/<str:provider>", webhooks.receive, name="signature-webhook"),
     path("api/v1/", include(api_v1)),
     path(settings.PACTOR_ADMIN_PATH, admin.site.urls),

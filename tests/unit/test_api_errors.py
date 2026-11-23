@@ -73,11 +73,10 @@ def test_throttled_keeps_retry_after_rounded_up() -> None:
     assert response["Retry-After"] == "13"
 
 
-def test_not_authenticated_sets_www_authenticate() -> None:
+def test_not_authenticated_keeps_drf_status_and_code() -> None:
     response = _handle(drf.NotAuthenticated())
     assert response.status_code == 401
     assert response.data["error"]["code"] == "not_authenticated"
-    assert "WWW-Authenticate" in response
 
 
 def test_unmapped_api_exception_uses_generic_code() -> None:

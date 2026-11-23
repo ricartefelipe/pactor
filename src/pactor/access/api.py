@@ -12,6 +12,7 @@ import json
 from collections.abc import Callable
 from typing import TYPE_CHECKING, Any, ClassVar
 
+from oauth2_provider.models import AccessToken
 from rest_framework.renderers import JSONRenderer
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -22,7 +23,9 @@ from pactor.access.authorization import authorize
 from pactor.access.policies import Permission, Principal
 from pactor.access.principal import activate_request_principal
 from pactor.core import idempotency
+from pactor.core.errors import AccessDeniedError
 from pactor.identity.models import User
+from pactor.integrations.services import principal_for_token
 
 if TYPE_CHECKING:
     _GenericViewSet = GenericViewSet[Any]
@@ -40,11 +43,14 @@ class TenantScopedMixin(APIView):
 
     def initial(self, request: Request, *args: Any, **kwargs: Any) -> None:
         super().initial(request, *args, **kwargs)
-        user = request.user
-        if not isinstance(user, User):
-            # IsAuthenticated já rejeitou anônimos; integrações usam outra base.
-            raise TypeError("TenantScopedMixin exige usuário autenticado por sessão.")
-        self.principal = activate_request_principal(request, user)
+        if isinstance(request.auth, AccessToken):
+            # Integração máquina a máquina: tenant e papéis vêm do cliente OAuth.
+            self.principal = principal_for_token(request.auth)
+        else:
+            user = request.user
+            if not isinstance(user, User):
+                raise AccessDeniedError("Autenticação obrigatória.")
+            self.principal = activate_request_principal(request, user)
         permission = self._required_permission(request)
         if permission is not None:
             authorize(self.principal, permission)

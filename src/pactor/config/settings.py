@@ -64,6 +64,8 @@ INSTALLED_APPS = [
     "pactor.obligations",
     "pactor.finance",
     "pactor.search",
+    "oauth2_provider",
+    "pactor.integrations",
 ]
 
 MIDDLEWARE = [
@@ -193,6 +195,15 @@ MFA_SUPPORTED_TYPES = ["totp", "recovery_codes"]
 MFA_TOTP_ISSUER = "Pactor"
 USERSESSIONS_TRACK_ACTIVITY = True
 
+# Integrações máquina a máquina (Django OAuth Toolkit): somente client credentials,
+# segredos armazenados como hash, tokens de 1 hora, escopos por cliente.
+OAUTH2_PROVIDER = {
+    "SCOPES_BACKEND_CLASS": "pactor.integrations.scopes.IntegrationScopes",
+    "ACCESS_TOKEN_EXPIRE_SECONDS": env_int("PACTOR_OAUTH_TOKEN_SECONDS", 3600),
+    "PKCE_REQUIRED": True,
+    "ALLOWED_REDIRECT_URI_SCHEMES": ["https"],
+}
+
 # Plano atribuído a novas organizações (trial).
 PACTOR_TRIAL_PLAN = env_str("PACTOR_TRIAL_PLAN", "profissional")
 
@@ -267,8 +278,13 @@ STORAGES = {
 # REST
 # ---------------------------------------------------------------------------
 REST_FRAMEWORK = {
-    "DEFAULT_AUTHENTICATION_CLASSES": ["rest_framework.authentication.SessionAuthentication"],
-    "DEFAULT_PERMISSION_CLASSES": ["rest_framework.permissions.IsAuthenticated"],
+    # OAuth primeiro: define a resposta 401 com WWW-Authenticate: Bearer quando
+    # não há credencial válida (sessões continuam aceitas pela segunda classe).
+    "DEFAULT_AUTHENTICATION_CLASSES": [
+        "pactor.access.authentication.BearerTokenAuthentication",
+        "rest_framework.authentication.SessionAuthentication",
+    ],
+    "DEFAULT_PERMISSION_CLASSES": ["pactor.access.permissions.IsAuthenticatedOrIntegration"],
     "DEFAULT_RENDERER_CLASSES": ["rest_framework.renderers.JSONRenderer"],
     "DEFAULT_PARSER_CLASSES": ["rest_framework.parsers.JSONParser"],
     "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",

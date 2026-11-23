@@ -37,6 +37,7 @@ dependência real; sem essa marca, o item tem código e testes locais.
 | Agendamento | Tasks agendadas e consumidores roteados registrados | `tests/unit/test_scheduling.py` |
 | Valores | Decimal/BRL, recusa de float e não finitos, rateio exato, meio-par, confirmações e reajustes imutáveis, resumo | `tests/unit/test_money.py`, `tests/integration/test_finance.py` |
 | Pesquisa | Permissões diferentes, facetas/contagens/sugestões/exportação sem vazamento, indexação atrasada, anexos não liberados fora do índice, isolamento | `tests/integration/test_search.py` |
+| Integrações OAuth | Token real via /o/token/, tenant do cliente, escopos restritivos, visibilidade, revogação, token só no cabeçalho, MFA para gestão | `tests/integration/test_integrations.py` |
 | Concorrência de revisões | Edição simultânea de rascunho e publicação simultânea | `tests/concurrency/test_revision_races.py` |
 
 ## Em andamento
@@ -47,6 +48,7 @@ dependência real; sem essa marca, o item tem código e testes locais.
 
 | Data | Comando | Resultado |
 | --- | --- | --- |
+| 2026-11-23 | `make test` (integrações OAuth) | 531 testes aprovados; gate core 98,49% / 92,86%; gate crítico 98,05% / 91,57% |
 | 2026-11-23 | `make test` (pesquisa e relatórios) | 525 testes aprovados; gate core 98,55% / 93,09%; gate crítico 98,10% / 91,77% |
 | 2026-11-23 | `make test` (valores e compromissos) | 518 testes aprovados; gate core 98,55% / 93,00%; gate crítico 98,11% / 91,82% |
 | 2026-11-23 | `make test` (prazos e obrigações) | 483 testes aprovados; gate core 98,71% / 93,55%; gate crítico 98,24% / 92,27% |
