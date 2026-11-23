@@ -9,7 +9,9 @@ from pactor.audit.api import AuditEventViewSet
 from pactor.contracts.api import ContractViewSet
 from pactor.core import health
 from pactor.counterparties.api import CounterpartyViewSet
+from pactor.drafting.api import TemplateViewSet
 from pactor.identity import api as identity
+from pactor.intake.api import RequestViewSet
 from pactor.signatures import webhooks
 from pactor.signatures.api import EnvelopeViewSet
 
@@ -26,6 +28,8 @@ router.register("workflows", WorkflowViewSet, basename="workflow")
 router.register("approval-rounds", ApprovalRoundViewSet, basename="approval-round")
 router.register("delegations", DelegationViewSet, basename="delegation")
 router.register("envelopes", EnvelopeViewSet, basename="envelope")
+router.register("templates", TemplateViewSet, basename="template")
+router.register("requests", RequestViewSet, basename="request")
 
 api_v1 = [
     path("me", identity.MeView.as_view(), name="me"),
