@@ -303,3 +303,36 @@ stateDiagram-v2
   na data consultada.
 - **Limite do plano**: contratos aguardando início, vigentes, suspensos ou em assinatura contam
   como ativos; o envio para assinatura é bloqueado ao exceder o limite.
+
+## Arquivos
+
+```mermaid
+flowchart LR
+  up[Upload autorizado] --> q[quarantined: bytes em caminho gerado + SHA-256]
+  q -->|outbox files.received| w[worker extraction]
+  w --> h{hash confere?}
+  h -- não --> rej[rejected: hash_mismatch]
+  h -- sim --> av{ClamAV INSTREAM}
+  av -- indisponível --> q
+  av -- FOUND --> inf[infected]
+  av -- OK --> sb[subprocesso isolado: python -I, RLIMIT CPU/AS/FSIZE/NOFILE, timeout]
+  sb -- recusado --> rej2[rejected: motivo]
+  sb -- ok --> rel[released: texto extraído, prévia para DOCX]
+```
+
+- **Formatos**: PDF e DOCX, identificados por extensão e conferidos pelos bytes iniciais.
+- **Limites**: tamanho de upload (`PACTOR_MAX_UPLOAD_BYTES`), cota de armazenamento do plano,
+  500 páginas, 2.000 entradas ZIP, 100 MiB descompactados, taxa de compressão 200:1, 2 milhões
+  de caracteres extraídos.
+- **Rejeições**: PDF criptografado, com JavaScript, `/Launch`, arquivos embutidos, RichMedia ou
+  XFA; DOCX com macros (parte VBA ou tipo `macroEnabled`), relacionamentos externos
+  (`TargetMode="External"`), caminhos absolutos ou com `..`, bombas de compressão; estrutura
+  malformada; tempo ou memória excedidos no subprocesso.
+- **Antimalware**: ClamAV real (container `clamav`, protocolo `INSTREAM`). Sem resposta `OK`
+  explícita, o arquivo permanece em quarentena e a task tenta de novo; a indisponibilidade nunca
+  libera arquivo.
+- **Acesso**: arquivos fora de `released` não podem ser baixados, anexados, compartilhados nem
+  ter texto extraído gravado (restrição no banco). Downloads exigem ser o autor do upload ou ter
+  acesso a um contrato ao qual o arquivo está anexado; o hash é conferido antes da entrega.
+- **Anexos**: arquivos liberados marcados como parte da submissão entram no fingerprint da
+  revisão; anexar ou remover invalida aprovação vigente.

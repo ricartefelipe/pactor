@@ -28,6 +28,8 @@ dependência real; sem essa marca, o item tem código e testes locais.
 | Solicitações | Ciclo, visibilidade por solicitante, histórico somente-inserção, conversão em contrato | `tests/integration/test_drafting_intake.py` |
 | Vigência | Início futuro, indeterminado, agendador idempotente com recuperação, suspensão por política, rescisão, arquivamento, restrição no banco | `tests/unit/test_lifecycle_domain.py`, `tests/integration/test_lifecycle.py` |
 | Aditivos | Alterações no snapshot aprovado, efeito após assinatura, condições por data, original preservado | `tests/integration/test_lifecycle.py` |
+| Arquivos | Quarentena inacessível, scanner indisponível, arquivo malformado, macros, referência externa, caminhos, bomba ZIP, PDF ativo/criptografado, hash alterado, cota, anexos no fingerprint | `tests/unit/test_file_inspection.py`, `tests/integration/test_files.py` |
+| ClamAV real | EICAR bloqueado e PDF liberado pelo pipeline | `tests/infra/test_clamav.py` (exercitado) |
 | Concorrência de revisões | Edição simultânea de rascunho e publicação simultânea | `tests/concurrency/test_revision_races.py` |
 
 ## Em andamento
@@ -38,6 +40,7 @@ dependência real; sem essa marca, o item tem código e testes locais.
 
 | Data | Comando | Resultado |
 | --- | --- | --- |
+| 2026-11-23 | `make test` (arquivos e ClamAV) | 445 testes aprovados; gate core 98,35% / 93,11%; gate crítico 97,83% / 91,67% |
 | 2026-11-22 | `make test` (vigência e aditivos) | 407 testes aprovados; gate core 98,60% / 93,46%; gate crítico 98,27% / 92,17% |
 | 2026-11-22 | `make test` (modelos e solicitações) | 375 testes aprovados; gate core 98,56% / 93,27%; gate crítico 98,24% / 92,05% |
 | 2026-11-22 | `make mutation` (políticas, aprovações, contratos, documentos) | 645 mutantes: 604 mortos (93,6%), 41 sobreviventes analisados — mensagens de erro decoradas/sem localização e equivalentes (`zip(strict)` com tamanhos iguais, `ensure_ascii=None`, `"UTF-8"`, atribuição a `group_approved` já falso) |
@@ -52,5 +55,4 @@ dependência real; sem essa marca, o item tem código e testes locais.
 - Frontend, vigência, obrigações, prazos, valores, arquivos,
   pesquisa, integrações OAuth e frontend.
 - Teste de perda de worker durante a execução (redelivery com `acks_late`) ainda não automatizado.
-- Anexos de revisão entram no fingerprint quando o módulo de arquivos for integrado.
 - gitleaks e Trivy executados apenas na CI (não disponíveis no ambiente local).
