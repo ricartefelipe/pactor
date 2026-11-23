@@ -9,7 +9,7 @@ export PACTOR_APP_PASSWORD ?= app-local
 export CELERY_BROKER_URL ?= amqp://pactor:pactor-local@localhost:5672/pactor
 export REDIS_URL ?= redis://localhost:6379/0
 
-.PHONY: mutation pytest infra lock-check lint format typecheck audit bandit secrets test-unit test coverage \
+.PHONY: mutation test-external pytest infra lock-check lint format typecheck audit bandit secrets test-unit test coverage \
         migrations-check openapi-check check
 
 infra:
@@ -44,7 +44,7 @@ test-unit:
 
 # Testes com worker real (marcador infra) rodam em série, após os demais.
 test:
-	uv run pytest -n 4 -m "not infra" --cov --cov-report=
+	uv run pytest -n 4 -m "not infra and not external" --cov --cov-report=
 	uv run pytest -m infra --cov --cov-append --cov-report=term --cov-report=json:var/coverage.json
 	uv run python scripts/check_coverage.py var/coverage.json
 
@@ -61,6 +61,10 @@ openapi-check:
 	uv run python manage.py spectacular --validate --fail-on-warn --file var/openapi.yaml
 
 check: lock-check lint typecheck audit bandit migrations-check openapi-check test
+
+# Integração real com provedores externos (exige credenciais; ver .env.example).
+test-external:
+	uv run pytest -m external -v
 
 # Execução pontual: make pytest ARGS="tests/integration/test_x.py -q"
 pytest:

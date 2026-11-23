@@ -56,6 +56,7 @@ INSTALLED_APPS = [
     "pactor.counterparties",
     "pactor.contracts",
     "pactor.approvals",
+    "pactor.signatures",
 ]
 
 MIDDLEWARE = [
@@ -315,10 +316,38 @@ CELERY_TASK_DEFAULT_QUEUE = "default"
 CELERY_TIMEZONE = TIME_ZONE
 CELERY_TASK_ROUTES = {
     "pactor.core.relay_outbox": {"queue": "default"},
+    "pactor.signatures.reconcile": {"queue": "integrations"},
+    "pactor.signatures.process_pending_events": {"queue": "integrations"},
 }
 CELERY_BEAT_SCHEDULE = {
     "relay-outbox": {"task": "pactor.core.relay_outbox", "schedule": 10.0},
+    "signatures-reconcile": {"task": "pactor.signatures.reconcile", "schedule": 300.0},
+    "signatures-pending-events": {
+        "task": "pactor.signatures.process_pending_events",
+        "schedule": 60.0,
+    },
 }
+
+# ---------------------------------------------------------------------------
+# Assinaturas eletrônicas
+# O simulador é identificado em todos os documentos e não pode ser usado em
+# produção. O adaptador Docusign só é construído com credenciais completas.
+# ---------------------------------------------------------------------------
+PACTOR_SIGNATURE_PROVIDER = env_str("PACTOR_SIGNATURE_PROVIDER", "simulator")
+if PACTOR_SIGNATURE_PROVIDER not in {"simulator", "docusign"}:
+    raise ConfigurationError(f"PACTOR_SIGNATURE_PROVIDER inválido: {PACTOR_SIGNATURE_PROVIDER!r}")
+if PACTOR_SIGNATURE_PROVIDER == "simulator" and IS_PRODUCTION:
+    raise ConfigurationError("O simulador de assinatura não pode ser usado em produção.")
+PACTOR_SIMULATOR_WEBHOOK_SECRET = env_str(
+    "PACTOR_SIMULATOR_WEBHOOK_SECRET", None if IS_PRODUCTION else "simulador-segredo-local"
+)
+DOCUSIGN_INTEGRATION_KEY = env_str("DOCUSIGN_INTEGRATION_KEY", "")
+DOCUSIGN_USER_ID = env_str("DOCUSIGN_USER_ID", "")
+DOCUSIGN_ACCOUNT_ID = env_str("DOCUSIGN_ACCOUNT_ID", "")
+DOCUSIGN_PRIVATE_KEY_PATH = env_str("DOCUSIGN_PRIVATE_KEY_PATH", "")
+DOCUSIGN_CONNECT_HMAC_KEY = env_str("DOCUSIGN_CONNECT_HMAC_KEY", "")
+DOCUSIGN_AUTH_SERVER = env_str("DOCUSIGN_AUTH_SERVER", "account-d.docusign.com")
+DOCUSIGN_BASE_URI = env_str("DOCUSIGN_BASE_URI", "https://demo.docusign.net/restapi")
 
 # ---------------------------------------------------------------------------
 # E-mail

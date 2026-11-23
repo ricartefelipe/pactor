@@ -32,6 +32,11 @@ Formato baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e
   proibição de autoaprovação, bloqueio por perda de acesso e substituição auditada de aprovador.
 - Aprovação vinculada à revisão e ao fingerprint; nova revisão substitui a rodada aberta ou
   invalida a aprovação concedida.
+- Assinaturas eletrônicas: porta de integração, simulador determinístico e adaptador Docusign
+  (demonstração), envio da revisão aprovada com hash, ordem de assinatura, situação por
+  participante, webhooks com HMAC idempotentes e tolerantes a desordem, recuperação de timeout
+  por referência, cancelamento, documentos enviados e retornados preservados com hash e
+  reconciliação periódica.
 - Validação do esquema OpenAPI sem avisos como gate da CI.
 - Mutation testing do núcleo de regras (manual e semanal).
 - Autenticação por e-mail com confirmação e MFA (django-allauth headless).

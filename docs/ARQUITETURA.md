@@ -216,3 +216,40 @@ stateDiagram-v2
   e o voto é recusado. Testado nas duas ordens com conexões separadas.
 - **Envio para assinatura** exige `approved`, revisão aprovada igual à vigente e fingerprint
   idêntico, sem rodada aberta (`require_approved_for_signature`).
+
+## Assinaturas eletrônicas
+
+```mermaid
+sequenceDiagram
+  participant U as Gestor (API)
+  participant DB as PostgreSQL
+  participant W as Worker integrations
+  participant P as Provedor (simulador/Docusign)
+  participant H as Webhook
+  U->>DB: envio: aprovação vigente + fingerprint esperado, PDF da revisão aprovada (hash), envelope e outbox
+  W->>DB: plan_dispatch (transação curta, lê bytes e confere hash)
+  W->>P: create_envelope(referência = id do envelope) fora de transação
+  alt timeout/5xx após envio
+    W->>DB: dispatch_unknown
+    W->>P: find_by_reference antes de qualquer novo envio
+  end
+  W->>DB: provider_envelope_id, rota do webhook, situação "sent"
+  P->>H: evento assinado (HMAC)
+  H->>DB: inbox (dedup) e aplicação no tenant com contrato e envelope travados
+```
+
+- **Porta** (`signatures/ports.py`): criar, consultar por referência, consultar situação, cancelar,
+  baixar documentos e interpretar webhooks. Adaptadores: **simulador** (local, determinístico,
+  identificado em todos os documentos, recusado em produção) e **Docusign** (eSignature REST v2.1,
+  JWT Grant, campo customizado `pactor_reference`, Connect com HMAC).
+- **Revisão estável**: o envelope guarda revisão, fingerprint, provedor e conta. O PDF é gerado da
+  revisão **aprovada** e armazenado com SHA-256 no envio; o worker envia exatamente esses bytes
+  (hash conferido na leitura) e recusa o envio se a aprovação mudou.
+- **Participante × envelope**: assinatura de um participante não conclui o envelope.
+- **Eventos**: inbox com chave de deduplicação do provedor; situações só avançam (eventos fora de
+  ordem não regridem); eventos de envelope cancelado, com falha, substituído ou de revisão diferente
+  da aprovada são registrados como `old_envelope` e não alteram o contrato.
+- **Documentos**: enviado, assinado e evidências são preservados separadamente, cada um com hash;
+  downloads passam por autorização do contrato e conferem o hash antes de entregar os bytes.
+- **Recuperação**: `reconcile` (periódico) consulta o provedor para envelopes sem confirmação ou sem
+  eventos recentes; `process_pending_events` reaplica eventos gravados e não processados.

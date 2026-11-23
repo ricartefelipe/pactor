@@ -154,3 +154,24 @@ remove. Assim, aprovadores de contratos confidenciais enxergam o conteúdo somen
 **Decisão.** `mutmut` sobre políticas de acesso, domínio de aprovações, domínio de contratos e
 documentos (`make mutation`; workflow `mutation.yml` manual e semanal). Não é gate de PR pelo
 custo; os sobreviventes são analisados e registrados em `STATUS.md`.
+
+## ADR-021 — Envio de assinatura em duas fases, sem transação durante a rede
+
+**Decisão.** A requisição registra envelope, documento e evento na outbox. O worker planeja o envio
+em transação curta, chama o provedor fora de transação e confirma em nova transação. Timeout ou
+resposta 5xx na criação marcam `dispatch_unknown`; toda tentativa posterior consulta o provedor pela
+referência antes de criar outro envelope.
+
+**Consequências.** Não há envelope duplicado por retentativa cega. A reconciliação periódica cobre
+tentativas esgotadas e webhooks perdidos.
+
+## ADR-022 — Simulador de assinatura como provedor de primeira classe
+
+**Decisão.** O simulador implementa a mesma porta, persiste o estado do "lado do provedor" e emite
+webhooks assinados com HMAC que percorrem o mesmo endpoint dos provedores reais. É recusado quando
+`PACTOR_ENVIRONMENT=production`, e a configuração falha se for selecionado em produção.
+
+## ADR-023 — Testes de provedores externos falham sem credenciais
+
+**Decisão.** `tests/external` só roda com `make test-external` e falha quando faltam credenciais.
+A CI não o executa; a situação fica registrada em `STATUS.md` como não exercitada.
