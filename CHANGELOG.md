@@ -28,6 +28,12 @@ recuperação a um ponto no tempo exercitada e testes no navegador de todas as t
 - Convite sem departamentos era recusado pela API ("Esta lista pode não estar vazia").
 - Erros de validação gerais (ex.: período do calendário longo demais) apareciam apenas como
   "Dados inválidos."; a tela passa a mostrar o motivo.
+- Valor de índice registrado numa série existente com outra fonte ou outro caráter
+  (demonstrativo/oficial) era aceito com os dados da série em silêncio; agora é recusado.
+- Campos decimais aceitam vírgula ("4,5").
+- `verify_documents` com organização inexistente terminava com sucesso vazio; arquivos já
+  recusados por adulteração reprovavam toda conferência.
+- O exercício de PITR podia começar antes do servidor definitivo do PostgreSQL ficar pronto.
 
 ## [0.1.0] - 2026-11-23
 

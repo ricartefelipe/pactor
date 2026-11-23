@@ -59,6 +59,8 @@ dependência real; sem essa marca, o item tem código e testes locais.
 
 | Data | Comando | Resultado |
 | --- | --- | --- |
+| 2026-11-23 | Revisão de código da versão 0.2.0 (`/code-review` sobre `release/0.2.0`) | 7 achados (2 importantes: corrida na espera do PITR e fonte/caráter de índice ignorados em série existente; 5 menores: espera do antivírus e CSV sem verificação real no E2E, organização inexistente e arquivo adulterado na conferência, vírgula decimal); todos corrigidos com teste |
+| 2026-11-23 | `make test` (release 0.2.0, após a revisão) | 590 testes aprovados; gate core 98,54% / 92,87%; gate crítico 98,04% / 91,59%; E2E local: 5 testes em 3,4 min |
 | 2026-11-23 | Revisão de código da versão 0.1.0 (`/code-review` sobre `release/0.1.0`) | 10 achados (9 importantes: aprovação com dados alterados, término de aditivos, renovação mensal, integrações criando solicitações, reajuste duplicado ou acima do máximo, corrida na numeração de parcelas, filtros de término; 1 menor: vencimentos após 9999); todos corrigidos com teste de regressão que falha sem a correção |
 | 2026-11-23 | `make test` (após a revisão) | 583 testes aprovados; gate core 98,53% / 92,83%; gate crítico 98,04% / 91,57% |
 | 2026-11-23 | `make test` (aplicação web) | 569 testes aprovados; gate core 98,52% / 92,81%; gate crítico 98,06% / 91,59% |
