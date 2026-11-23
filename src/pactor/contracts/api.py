@@ -15,8 +15,18 @@ from rest_framework.response import Response
 from pactor.access.api import TenantViewSet
 from pactor.access.policies import Confidentiality, Permission, can_edit_contract
 from pactor.contracts import selectors, services
-from pactor.contracts.domain import ContractType, DraftingStatus, PartyRole
-from pactor.contracts.models import Comment, Contract, ContractDraft, ContractGrant, Revision
+from pactor.contracts.domain import ContractType, PartyRole
+from pactor.contracts.models import (
+    CONFIDENTIALITY_CHOICES,
+    CONTRACT_TYPE_CHOICES,
+    DRAFTING_CHOICES,
+    PARTY_ROLE_CHOICES,
+    Comment,
+    Contract,
+    ContractDraft,
+    ContractGrant,
+    Revision,
+)
 from pactor.contracts.visibility import facts_for
 from pactor.core.api.filters import parse_filters
 from pactor.core.api.pagination import StablePagination
@@ -106,15 +116,15 @@ class ContractSerializer(serializers.ModelSerializer[Contract]):
 
 class ContractCreateSerializer(serializers.Serializer[Contract]):
     title = serializers.CharField(max_length=200)
-    contract_type = serializers.ChoiceField(choices=[t.value for t in ContractType])
+    contract_type = serializers.ChoiceField(choices=CONTRACT_TYPE_CHOICES)
     counterparty_id = serializers.UUIDField()
-    organization_role = serializers.ChoiceField(choices=[r.value for r in PartyRole])
-    counterparty_role = serializers.ChoiceField(choices=[r.value for r in PartyRole])
+    organization_role = serializers.ChoiceField(choices=PARTY_ROLE_CHOICES)
+    counterparty_role = serializers.ChoiceField(choices=PARTY_ROLE_CHOICES)
     owner_id = serializers.UUIDField()
     department_id = serializers.UUIDField(required=False, allow_null=True)
     requester_id = serializers.UUIDField(required=False, allow_null=True)
     confidentiality = serializers.ChoiceField(
-        choices=[c.value for c in Confidentiality], default=Confidentiality.INTERNAL.value
+        choices=CONFIDENTIALITY_CHOICES, default=Confidentiality.INTERNAL.value
     )
     classification = serializers.CharField(
         max_length=60, required=False, allow_blank=True, default=""
@@ -138,9 +148,7 @@ class ContractUpdateSerializer(serializers.Serializer[Contract]):
     title = serializers.CharField(max_length=200, required=False)
     department_id = serializers.UUIDField(required=False, allow_null=True)
     owner_id = serializers.UUIDField(required=False)
-    confidentiality = serializers.ChoiceField(
-        choices=[c.value for c in Confidentiality], required=False
-    )
+    confidentiality = serializers.ChoiceField(choices=CONFIDENTIALITY_CHOICES, required=False)
     classification = serializers.CharField(max_length=60, required=False, allow_blank=True)
     tags = serializers.ListField(child=serializers.CharField(max_length=40), required=False)
     total_value = serializers.DecimalField(
@@ -148,20 +156,14 @@ class ContractUpdateSerializer(serializers.Serializer[Contract]):
     )
     planned_start = serializers.DateField(required=False, allow_null=True)
     planned_end = serializers.DateField(required=False, allow_null=True)
-    organization_role = serializers.ChoiceField(
-        choices=[r.value for r in PartyRole], required=False
-    )
-    counterparty_role = serializers.ChoiceField(
-        choices=[r.value for r in PartyRole], required=False
-    )
+    organization_role = serializers.ChoiceField(choices=PARTY_ROLE_CHOICES, required=False)
+    counterparty_role = serializers.ChoiceField(choices=PARTY_ROLE_CHOICES, required=False)
 
 
 class ContractFilterSerializer(serializers.Serializer[None]):
     q = serializers.CharField(required=False, max_length=100)
-    drafting_status = serializers.ChoiceField(
-        choices=[s.value for s in DraftingStatus], required=False
-    )
-    contract_type = serializers.ChoiceField(choices=[t.value for t in ContractType], required=False)
+    drafting_status = serializers.ChoiceField(choices=DRAFTING_CHOICES, required=False)
+    contract_type = serializers.ChoiceField(choices=CONTRACT_TYPE_CHOICES, required=False)
     counterparty_id = serializers.UUIDField(required=False)
     owner_id = serializers.UUIDField(required=False)
     department_id = serializers.UUIDField(required=False)
@@ -304,27 +306,27 @@ class ContractViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, TenantVi
         return self.idempotent(request, "contracts.create", operation)
 
     @extend_schema(request=ContractUpdateSerializer, responses=ContractSerializer)
-    def partial_update(self, request: Request, pk: str) -> Response:
+    def partial_update(self, request: Request, pk: uuid.UUID) -> Response:
         serializer = ContractUpdateSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         changes = dict(serializer.validated_data)
         expected = changes.pop("expected_version")
         contract = services.update_metadata(
-            self.principal, uuid.UUID(pk), expected_version=expected, changes=changes
+            self.principal, pk, expected_version=expected, changes=changes
         )
         return self._contract_response(contract.id)
 
     @extend_schema(methods=["GET"], responses=DraftSerializer)
     @extend_schema(methods=["PUT"], request=DraftUpdateSerializer, responses=DraftSerializer)
     @action(detail=True, methods=["get", "put"])
-    def draft(self, request: Request, pk: str) -> Response:
+    def draft(self, request: Request, pk: uuid.UUID) -> Response:
         if request.method == "GET":
-            return Response(DraftSerializer(services.get_draft(self.principal, uuid.UUID(pk))).data)
+            return Response(DraftSerializer(services.get_draft(self.principal, pk)).data)
         serializer = DraftUpdateSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         draft = services.save_draft(
             self.principal,
-            uuid.UUID(pk),
+            pk,
             content=serializer.validated_data["content"],
             expected_version=serializer.validated_data["expected_version"],
         )
@@ -335,8 +337,8 @@ class ContractViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, TenantVi
         methods=["POST"], request=PublishSerializer, responses={201: RevisionDetailSerializer}
     )
     @action(detail=True, methods=["get", "post"])
-    def revisions(self, request: Request, pk: str) -> Response:
-        contract_id = uuid.UUID(pk)
+    def revisions(self, request: Request, pk: uuid.UUID) -> Response:
+        contract_id = pk
         if request.method == "GET":
             contract = selectors.get_visible_contract(self.principal, contract_id)
             revisions = selectors.revisions_of(contract).order_by("-number")
@@ -356,21 +358,21 @@ class ContractViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, TenantVi
         return self.idempotent(request, "contracts.publish_revision", operation)
 
     @extend_schema(responses=RevisionDetailSerializer)
-    @action(detail=True, methods=["get"], url_path=r"revisions/(?P<revision_id>[0-9a-f-]{36})")
-    def revision(self, _request: Request, pk: str, revision_id: str) -> Response:
-        contract = selectors.get_visible_contract(self.principal, uuid.UUID(pk))
+    @action(detail=True, methods=["get"], url_path="revisions/<uuid:revision_id>")
+    def revision(self, _request: Request, pk: uuid.UUID, revision_id: uuid.UUID) -> Response:
+        contract = selectors.get_visible_contract(self.principal, pk)
         return Response(
-            RevisionDetailSerializer(selectors.get_revision(contract, uuid.UUID(revision_id))).data
+            RevisionDetailSerializer(selectors.get_revision(contract, revision_id)).data
         )
 
     @extend_schema(parameters=[CompareSerializer], responses={200: dict})
     @action(detail=True, methods=["get"])
-    def compare(self, request: Request, pk: str) -> Response:
+    def compare(self, request: Request, pk: uuid.UUID) -> Response:
         params = CompareSerializer(data=request.query_params)
         params.is_valid(raise_exception=True)
         diff = services.compare_revisions(
             self.principal,
-            uuid.UUID(pk),
+            pk,
             params.validated_data["old"],
             params.validated_data["new"],
         )
@@ -397,10 +399,10 @@ class ContractViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, TenantVi
     @action(
         detail=True,
         methods=["get", "post"],
-        url_path=r"revisions/(?P<revision_id>[0-9a-f-]{36})/comments",
+        url_path="revisions/<uuid:revision_id>/comments",
     )
-    def comments(self, request: Request, pk: str, revision_id: str) -> Response:
-        contract_id, rev_id = uuid.UUID(pk), uuid.UUID(revision_id)
+    def comments(self, request: Request, pk: uuid.UUID, revision_id: uuid.UUID) -> Response:
+        contract_id, rev_id = pk, revision_id
         if request.method == "GET":
             contract = selectors.get_visible_contract(self.principal, contract_id)
             revision = selectors.get_revision(contract, rev_id)
@@ -417,11 +419,9 @@ class ContractViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, TenantVi
         return Response(CommentSerializer(comment).data, status=status.HTTP_201_CREATED)
 
     @extend_schema(request=None, responses=CommentSerializer)
-    @action(
-        detail=True, methods=["post"], url_path=r"comments/(?P<comment_id>[0-9a-f-]{36})/resolve"
-    )
-    def resolve_comment(self, _request: Request, pk: str, comment_id: str) -> Response:
-        comment = services.resolve_comment(self.principal, uuid.UUID(pk), uuid.UUID(comment_id))
+    @action(detail=True, methods=["post"], url_path="comments/<uuid:comment_id>/resolve")
+    def resolve_comment(self, _request: Request, pk: uuid.UUID, comment_id: uuid.UUID) -> Response:
+        comment = services.resolve_comment(self.principal, pk, comment_id)
         return Response(CommentSerializer(comment).data)
 
     @extend_schema(methods=["GET"], responses=GrantSerializer(many=True))
@@ -429,8 +429,8 @@ class ContractViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, TenantVi
         methods=["POST"], request=GrantCreateSerializer, responses={201: GrantSerializer}
     )
     @action(detail=True, methods=["get", "post"])
-    def grants(self, request: Request, pk: str) -> Response:
-        contract_id = uuid.UUID(pk)
+    def grants(self, request: Request, pk: uuid.UUID) -> Response:
+        contract_id = pk
         if request.method == "GET":
             contract = selectors.get_visible_contract(self.principal, contract_id)
             return Response(GrantSerializer(contract.grants.all(), many=True).data)
@@ -446,7 +446,7 @@ class ContractViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, TenantVi
         return Response(GrantSerializer(grant).data, status=status.HTTP_201_CREATED)
 
     @extend_schema(request=None, responses={204: None})
-    @action(detail=True, methods=["delete"], url_path=r"grants/(?P<grant_id>[0-9a-f-]{36})")
-    def grant(self, _request: Request, pk: str, grant_id: str) -> Response:
-        services.unshare(self.principal, uuid.UUID(pk), uuid.UUID(grant_id))
+    @action(detail=True, methods=["delete"], url_path="grants/<uuid:grant_id>")
+    def grant(self, _request: Request, pk: uuid.UUID, grant_id: uuid.UUID) -> Response:
+        services.unshare(self.principal, pk, grant_id)
         return Response(status=status.HTTP_204_NO_CONTENT)

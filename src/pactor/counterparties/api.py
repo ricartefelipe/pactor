@@ -17,7 +17,13 @@ from pactor.core.api.filters import parse_filters
 from pactor.core.api.pagination import StablePagination
 from pactor.counterparties import services
 from pactor.counterparties.domain import PartyKind
-from pactor.counterparties.models import Address, Contact, Counterparty, Representative
+from pactor.counterparties.models import (
+    PARTY_KIND_CHOICES,
+    Address,
+    Contact,
+    Counterparty,
+    Representative,
+)
 
 
 class ContactSerializer(serializers.ModelSerializer[Contact]):
@@ -98,7 +104,7 @@ class CounterpartyUpdateSerializer(serializers.Serializer[Counterparty]):
 
 class CounterpartyFilterSerializer(serializers.Serializer[None]):
     q = serializers.CharField(required=False, max_length=100)
-    kind = serializers.ChoiceField(choices=[k.value for k in PartyKind], required=False)
+    kind = serializers.ChoiceField(choices=PARTY_KIND_CHOICES, required=False)
     is_active = serializers.BooleanField(required=False, allow_null=True, default=None)
 
 
@@ -159,12 +165,12 @@ class CounterpartyViewSet(
         return Response(CounterpartySerializer(fresh).data, status=status.HTTP_201_CREATED)
 
     @extend_schema(request=CounterpartyUpdateSerializer, responses=CounterpartySerializer)
-    def partial_update(self, request: Request, pk: str) -> Response:
+    def partial_update(self, request: Request, pk: uuid.UUID) -> Response:
         serializer = CounterpartyUpdateSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         changes = dict(serializer.validated_data)
         expected = changes.pop("expected_version")
         counterparty = services.update_counterparty(
-            self.principal, uuid.UUID(pk), expected_version=expected, changes=changes
+            self.principal, pk, expected_version=expected, changes=changes
         )
         return Response(CounterpartySerializer(counterparty).data)

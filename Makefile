@@ -9,8 +9,8 @@ export PACTOR_APP_PASSWORD ?= app-local
 export CELERY_BROKER_URL ?= amqp://pactor:pactor-local@localhost:5672/pactor
 export REDIS_URL ?= redis://localhost:6379/0
 
-.PHONY: pytest infra lock-check lint format typecheck audit bandit secrets test-unit test coverage \
-        migrations-check check
+.PHONY: mutation pytest infra lock-check lint format typecheck audit bandit secrets test-unit test coverage \
+        migrations-check openapi-check check
 
 infra:
 	docker compose up -d postgres rabbitmq redis mailpit clamav
@@ -51,7 +51,16 @@ test:
 migrations-check:
 	uv run python manage.py makemigrations --check --dry-run
 
-check: lock-check lint typecheck audit bandit migrations-check test
+# Mutation testing no núcleo de regras (ver [tool.mutmut] no pyproject).
+mutation:
+	rm -rf mutants
+	uv run mutmut run
+	uv run mutmut results
+
+openapi-check:
+	uv run python manage.py spectacular --validate --fail-on-warn --file var/openapi.yaml
+
+check: lock-check lint typecheck audit bandit migrations-check openapi-check test
 
 # Execução pontual: make pytest ARGS="tests/integration/test_x.py -q"
 pytest:
