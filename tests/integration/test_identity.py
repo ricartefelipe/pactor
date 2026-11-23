@@ -434,3 +434,19 @@ def test_principal_includes_departments_and_teams_from_request() -> None:
     assert response.status_code == 200
     with tenant_context(org.id):
         assert factories.principal(org, person).department_ids == {dept.id}
+
+
+def test_invitation_without_departments_is_accepted_by_the_api() -> None:
+    org, owner = factories.organization()
+    response = factories.client_for(owner, org).post(
+        "/api/v1/invitations",
+        {
+            "email": "sem.departamento@exemplo.test",
+            "kind": "internal",
+            "roles": ["reviewer"],
+            "department_ids": [],
+        },
+        content_type="application/json",
+    )
+    assert response.status_code == 201, response.json()
+    assert response.json()["department_ids"] == []

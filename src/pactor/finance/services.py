@@ -229,11 +229,22 @@ def register_index_value(
     except MoneyError as exc:
         raise DomainValidationError(str(exc)) from exc
     organization_id = require_tenant()
-    series, _ = IndexSeries.objects.get_or_create(
+    series, created = IndexSeries.objects.get_or_create(
         organization_id=organization_id,
         name=series_name.strip()[:80],
         defaults={"source": source.strip()[:200], "is_demonstrative": demonstrative},
     )
+    # Fonte e caráter demonstrativo são da série: um valor não pode, em silêncio,
+    # entrar numa série oficial marcado como demonstrativo (ou o contrário).
+    if not created and (
+        series.source != source.strip()[:200] or series.is_demonstrative != demonstrative
+    ):
+        kind = "valores demonstrativos" if series.is_demonstrative else "valores oficiais"
+        raise ConflictError(
+            f'A série {series.name} já existe com a fonte "{series.source}" e {kind}. '
+            "Use os mesmos dados da série ou outro nome.",
+            details={"source": series.source, "is_demonstrative": series.is_demonstrative},
+        )
     if IndexValue.objects.filter(series=series, period=period.replace(day=1)).exists():
         raise ConflictError("Já existe valor registrado para o período.")
     value = IndexValue.objects.create(

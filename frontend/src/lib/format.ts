@@ -46,3 +46,13 @@ export function addDaysIso(isoDate: string, days: number): string {
   const date = new Date(Date.UTC(year, month - 1, day + days));
   return date.toISOString().slice(0, 10);
 }
+
+/**
+ * Texto decimal para a API: aceita a vírgula brasileira ("4,5" → "4.5"). Separador
+ * de milhar não é interpretado ("1.500,00" segue como está e é recusado pela API),
+ * pois "1.500" seria ambíguo.
+ */
+export function decimalText(raw: string): string {
+  const text = raw.trim();
+  return text.includes(",") && !text.includes(".") ? text.replace(",", ".") : text;
+}

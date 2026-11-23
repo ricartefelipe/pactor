@@ -17,7 +17,7 @@ import {
 import { useNotify } from "../../components/notifications";
 import { EmptyState, QueryView } from "../../components/states";
 import { Button, DefinitionList, Section, Table } from "../../components/ui";
-import { formatDate, formatDateTime, formatMoney, todayIso } from "../../lib/format";
+import { decimalText, formatDate, formatDateTime, formatMoney, todayIso } from "../../lib/format";
 import { AMENDMENT_FIELD, LIFECYCLE_STATUS, enumValue, labelOf, options } from "../../lib/labels";
 import { useContractContext } from "./ContractLayout";
 import { useLifecycle } from "./queries";
@@ -97,7 +97,11 @@ function AmendmentChanges({ contractId }: { contractId: string }) {
     const values = formText(event.currentTarget);
     const field = enumValue(AMENDMENT_FIELD, values.field);
     if (field === undefined) return;
-    add.mutate({ field, value: values.value ?? "", effective_from: values.effective_from ?? "" });
+    add.mutate({
+      field,
+      value: field === "total_value" ? decimalText(values.value ?? "") : (values.value ?? ""),
+      effective_from: values.effective_from ?? "",
+    });
   }
 
   return (
@@ -145,7 +149,7 @@ function AmendmentChanges({ contractId }: { contractId: string }) {
           label="Novo valor"
           name="value"
           required
-          hint="Valor em reais com ponto (ex.: 42000.00) ou data AAAA-MM-DD."
+          hint="Valor em reais (ex.: 42000,00) ou data AAAA-MM-DD."
           error={errors.value}
         />
         <TextField

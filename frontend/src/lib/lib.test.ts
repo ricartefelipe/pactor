@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { addDaysIso, formatBytes, formatDate, formatMoney, todayIso } from "./format";
+import { addDaysIso, decimalText, formatBytes, formatDate, formatMoney, todayIso } from "./format";
 import { CONTRACT_TYPE, enumValue, labelOf, options } from "./labels";
 import { safeNext } from "./navigation";
 import { snippetParts } from "./snippet";
@@ -93,5 +93,17 @@ describe("definição de modelo", () => {
       nome: "Empresa",
       sigilo: false,
     });
+  });
+});
+
+describe("entrada decimal", () => {
+  it.each([
+    ["4,5", "4.5"],
+    [" 1500,00 ", "1500.00"],
+    ["1500.00", "1500.00"],
+    ["1.500,00", "1.500,00"],
+    ["-0,25", "-0.25"],
+  ])("decimalText(%s) = %s", (raw, expected) => {
+    expect(decimalText(raw)).toBe(expected);
   });
 });

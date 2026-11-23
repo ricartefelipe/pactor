@@ -6,12 +6,19 @@ import { ApiError, errorMessage } from "../../api/errors";
 import { useInvalidate, useOrgKey } from "../../app/queries";
 import { useSession } from "../../auth/session";
 import { Dialog } from "../../components/dialog";
-import { FormError, SelectField, TextField, formText, textOf } from "../../components/forms";
+import {
+  CheckboxField,
+  FormError,
+  SelectField,
+  TextField,
+  formText,
+  textOf,
+} from "../../components/forms";
 import { useNotify } from "../../components/notifications";
 import { Restricted } from "../../components/Restricted";
 import { EmptyState, QueryView } from "../../components/states";
 import { Badge, Button, Section, Table } from "../../components/ui";
-import { formatDate, formatMoney, todayIso } from "../../lib/format";
+import { decimalText, formatDate, formatMoney, todayIso } from "../../lib/format";
 import {
   FREQUENCY,
   INSTALLMENT_KIND,
@@ -21,7 +28,7 @@ import {
 } from "../../lib/labels";
 import { useContractContext } from "./ContractLayout";
 
-const MONEY_PATTERN = "[0-9]+([.][0-9]{1,2})?";
+const MONEY_PATTERN = "[0-9]+([.,][0-9]{1,2})?";
 
 function ConfirmDialog({
   installment,
@@ -56,7 +63,7 @@ function ConfirmDialog({
       onClose={onClose}
       onSubmit={(form) => {
         confirm.mutate({
-          amount: textOf(form, "amount"),
+          amount: decimalText(textOf(form, "amount")),
           confirmed_on: textOf(form, "confirmed_on"),
           reference: textOf(form, "reference"),
         });
@@ -119,7 +126,7 @@ function ScheduleForms({ contractId }: { contractId: string }) {
     const frequency = enumValue(FREQUENCY, values.frequency);
     if (!frequency) return;
     schedule.mutate({
-      total: values.total ?? "",
+      total: decimalText(values.total ?? ""),
       parts: Number(values.parts ?? "1"),
       first_due: values.first_due ?? "",
       frequency,
@@ -133,7 +140,7 @@ function ScheduleForms({ contractId }: { contractId: string }) {
     milestone.mutate({
       description: values.description ?? "",
       due_date: values.due_date ?? "",
-      amount: values.amount ?? "",
+      amount: decimalText(values.amount ?? ""),
     });
   }
 
@@ -213,6 +220,93 @@ function ScheduleForms({ contractId }: { contractId: string }) {
   );
 }
 
+/** Valor de índice informado pela organização, com fonte e período (nada é embutido). */
+function IndexValueForm() {
+  const notify = useNotify();
+  const invalidate = useInvalidate();
+  const register = useMutation({
+    mutationFn: (body: Schemas["IndexValueCreateRequest"]) =>
+      unwrap(api.POST("/api/v1/indexes", { body })),
+    onSuccess: async (value) => {
+      notify.success(`Índice ${value.series_name} registrado para o período.`);
+      await invalidate("indexes");
+    },
+  });
+  const errors = register.error instanceof ApiError ? register.error.fieldErrors : {};
+
+  function handleSubmit(event: SubmitEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const form = event.currentTarget;
+    const values = formText(form);
+    register.mutate(
+      {
+        series_name: values.series_name ?? "",
+        index_source: values.index_source ?? "",
+        period: values.period ?? "",
+        rate_percent: decimalText(values.rate_percent ?? ""),
+        source_note: values.source_note ?? "",
+        is_demonstrative: new FormData(form).get("is_demonstrative") === "on",
+      },
+      {
+        onSuccess: () => {
+          form.reset();
+        },
+      },
+    );
+  }
+
+  return (
+    <form className="form" onSubmit={handleSubmit} noValidate>
+      <h3>Registrar valor de índice</h3>
+      <FormError message={register.isError ? errorMessage(register.error) : null} />
+      <TextField
+        label="Série"
+        name="series_name"
+        required
+        maxLength={80}
+        hint="Ex.: IPCA"
+        error={errors.series_name}
+      />
+      <TextField
+        label="Fonte"
+        name="index_source"
+        required
+        maxLength={200}
+        error={errors.index_source}
+      />
+      <TextField
+        label="Período (mês)"
+        name="period"
+        type="date"
+        required
+        hint="Qualquer dia do mês de referência."
+        error={errors.period}
+      />
+      <TextField
+        label="Variação (%)"
+        name="rate_percent"
+        required
+        inputMode="decimal"
+        pattern="-?[0-9]+([.,][0-9]{1,6})?"
+        hint="Ex.: 4,5 para 4,5%"
+        error={errors.rate_percent}
+      />
+      <TextField
+        label="Nota de origem"
+        name="source_note"
+        required
+        maxLength={300}
+        hint="De onde veio o valor (publicação, data de consulta)."
+        error={errors.source_note}
+      />
+      <CheckboxField label="Valor demonstrativo (não oficial)" name="is_demonstrative" />
+      <Button type="submit" busy={register.isPending}>
+        Registrar valor
+      </Button>
+    </form>
+  );
+}
+
 function Adjustments({ contractId }: { contractId: string }) {
   const key = useOrgKey();
   const { can } = useSession();
@@ -262,6 +356,7 @@ function Adjustments({ contractId }: { contractId: string }) {
           )
         }
       </QueryView>
+      {can("finance.write") && <IndexValueForm />}
       {can("finance.write") && (
         <form
           className="form"

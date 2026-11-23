@@ -24,6 +24,17 @@ describe("toApiError", () => {
     expect(error.requestId).toBe("abc123");
   });
 
+  it("usa o erro geral de validação como mensagem", () => {
+    const error = toApiError(400, {
+      error: {
+        code: "validation_failed",
+        message: "Dados inválidos.",
+        details: { non_field_errors: ["Intervalo máximo de 400 dias."] },
+      },
+    });
+    expect(error.message).toBe("Intervalo máximo de 400 dias.");
+  });
+
   it("não trata detalhes de erros de domínio como erros de campo", () => {
     const error = toApiError(409, {
       error: { code: "stale_version", message: "Mudou.", details: { current_version: 3 } },
