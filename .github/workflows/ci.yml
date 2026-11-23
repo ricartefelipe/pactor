@@ -254,6 +254,11 @@ jobs:
           PACTOR_E2E_URL: http://localhost:8000
           PACTOR_E2E_MAILPIT: http://localhost:8025
         run: npx playwright test
+      - name: Backup com pactor_backup e recuperação a um ponto no tempo (dados do roteiro)
+        run: |
+          docker compose exec -T -e PGPASSWORD=backup-local postgres \
+            pg_dump -h localhost -U pactor_backup -d pactor --format=custom > pitr.dump
+          scripts/pitr-drill.sh pitr.dump
       - name: Logs da pilha
         if: failure()
         run: docker compose logs --no-color > compose.log

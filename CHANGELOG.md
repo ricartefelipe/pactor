@@ -7,6 +7,8 @@ Formato baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e
 
 ### Adicionado
 
+- Exercício de recuperação a um ponto no tempo (`scripts/pitr-drill.sh`, `make pitr-drill`),
+  executado também na CI, e configuração de arquivamento de WAL documentada no runbook.
 - QR code na ativação da verificação em duas etapas, gerado no navegador como SVG acessível
   (a chave em texto continua disponível).
 - Comando `verify_documents`: confere arquivos, prévias e documentos de assinatura contra
