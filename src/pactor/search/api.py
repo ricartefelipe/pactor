@@ -42,10 +42,51 @@ class SuggestQuerySerializer(serializers.Serializer[None]):
     q = serializers.CharField(max_length=services.MAX_QUERY_LENGTH)
 
 
+class SearchResultSerializer(serializers.Serializer[None]):
+    id = serializers.UUIDField()
+    reference = serializers.CharField()
+    title = serializers.CharField()
+    counterparty_name = serializers.CharField()
+    contract_type = serializers.ChoiceField(choices=CONTRACT_TYPE_CHOICES)
+    drafting_status = serializers.ChoiceField(choices=DRAFTING_CHOICES)
+    lifecycle_status = serializers.ChoiceField(choices=LIFECYCLE_CHOICES)
+    snippet = serializers.CharField()
+
+
+class SearchFacetsSerializer(serializers.Serializer[None]):
+    contract_type = serializers.DictField(child=serializers.IntegerField())
+    drafting_status = serializers.DictField(child=serializers.IntegerField())
+    lifecycle_status = serializers.DictField(child=serializers.IntegerField())
+
+
+class SearchPageSerializer(serializers.Serializer[None]):
+    total = serializers.IntegerField()
+    page = serializers.IntegerField()
+    page_size = serializers.IntegerField()
+    facets = SearchFacetsSerializer()
+    results = SearchResultSerializer(many=True)
+
+
+class SuggestionSerializer(serializers.Serializer[None]):
+    id = serializers.UUIDField()
+    reference = serializers.CharField()
+    title = serializers.CharField()
+
+
+class DashboardSerializer(serializers.Serializer[None]):
+    today = serializers.DateField()
+    contracts_total = serializers.IntegerField()
+    by_drafting_status = serializers.DictField(child=serializers.IntegerField())
+    by_lifecycle_status = serializers.DictField(child=serializers.IntegerField())
+    deadlines_next_30_days = serializers.IntegerField()
+    overdue_obligations = serializers.IntegerField()
+    pending_approvals = serializers.IntegerField()
+
+
 class SearchView(TenantAPIView):
     action_permissions: ClassVar[dict[str, Permission | None]] = {"get": None}
 
-    @extend_schema(parameters=[SearchQuerySerializer], responses={200: dict})
+    @extend_schema(parameters=[SearchQuerySerializer], responses=SearchPageSerializer)
     def get(self, request: Request) -> Response:
         params = parse_filters(request, SearchQuerySerializer)
         page, size = int(params.pop("page", 1)), int(params.pop("size", 20))
@@ -81,7 +122,7 @@ class SearchView(TenantAPIView):
 class SuggestView(TenantAPIView):
     action_permissions: ClassVar[dict[str, Permission | None]] = {"get": None}
 
-    @extend_schema(parameters=[SuggestQuerySerializer], responses={200: dict})
+    @extend_schema(parameters=[SuggestQuerySerializer], responses=SuggestionSerializer(many=True))
     def get(self, request: Request) -> Response:
         params = SuggestQuerySerializer(data=request.query_params)
         params.is_valid(raise_exception=True)
@@ -94,7 +135,7 @@ class SuggestView(TenantAPIView):
 class DashboardView(TenantAPIView):
     action_permissions: ClassVar[dict[str, Permission | None]] = {"get": None}
 
-    @extend_schema(responses={200: dict})
+    @extend_schema(responses=DashboardSerializer)
     def get(self, _request: Request) -> Response:
         return Response(reports.dashboard(self.principal))
 

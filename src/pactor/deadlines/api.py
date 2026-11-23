@@ -302,12 +302,31 @@ class AlertsView(TenantAPIView):
         return Response(AlertSerializer(alerts, many=True).data)
 
 
+class CalendarEventSerializer(serializers.Serializer[None]):
+    type = serializers.ChoiceField(choices=[("deadline", "Prazo"), ("obligation", "Obrigação")])
+    id = serializers.UUIDField()
+    date = serializers.DateField()
+    title = serializers.CharField()
+    kind = serializers.CharField()
+    status = serializers.CharField()
+    contract_id = serializers.UUIDField()
+    contract_reference = serializers.CharField()
+    overdue = serializers.BooleanField()
+
+
+class CalendarSerializer(serializers.Serializer[None]):
+    start = serializers.DateField()
+    end = serializers.DateField()
+    today = serializers.DateField()
+    events = CalendarEventSerializer(many=True)
+
+
 class CalendarView(TenantAPIView):
     """Prazos e ocorrências de obrigações dos contratos visíveis, em um intervalo."""
 
     action_permissions: ClassVar[dict[str, Permission | None]] = {"get": None}
 
-    @extend_schema(parameters=[RangeSerializer], responses={200: dict})
+    @extend_schema(parameters=[RangeSerializer], responses=CalendarSerializer)
     def get(self, request: Request) -> Response:
         query = RangeSerializer(data=request.query_params)
         query.is_valid(raise_exception=True)

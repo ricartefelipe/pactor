@@ -16,7 +16,7 @@ from django.db import models
 from django.utils import timezone
 from django.utils.crypto import salted_hmac
 
-from pactor.access.policies import ROLE_LABELS, Role
+from pactor.access.policies import ROLE_LABELS, Permission, Role
 from pactor.core.models import TenantModel
 
 
@@ -138,6 +138,7 @@ class MembershipStatus(models.TextChoices):
 
 
 ROLE_CHOICES = [(role.value, ROLE_LABELS[role]) for role in Role]
+PERMISSION_CHOICES = [(permission.value, permission.value) for permission in Permission]
 
 
 class Membership(TenantModel):

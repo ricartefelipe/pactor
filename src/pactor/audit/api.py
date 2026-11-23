@@ -5,6 +5,7 @@ from __future__ import annotations
 from typing import ClassVar
 
 from django.db.models import QuerySet
+from drf_spectacular.utils import extend_schema, extend_schema_view
 from rest_framework import mixins, serializers
 
 from pactor.access.api import TenantViewSet
@@ -44,6 +45,7 @@ class AuditPagination(StablePagination):
     ordering = ("-occurred_at", "-id")
 
 
+@extend_schema_view(list=extend_schema(parameters=[AuditFilterSerializer]))
 class AuditEventViewSet(mixins.ListModelMixin, TenantViewSet):
     serializer_class = AuditEventSerializer
     pagination_class = AuditPagination

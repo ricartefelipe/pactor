@@ -47,8 +47,27 @@ make secrets        # gitleaks (requer binário instalado)
 make migrations-check
 make test-unit      # sem banco, broker, cache ou rede
 make test           # suíte completa com PostgreSQL real e gates de cobertura
-make check          # todos acima, exceto segredos
+make frontend-check # tipos da API, ESLint, Prettier, TypeScript, Vitest, npm audit e build
+make check          # todos acima, exceto segredos e o roteiro no navegador
 ```
+
+### Frontend
+
+```bash
+cd frontend
+npm ci
+npm run gen:api     # regenera os tipos após mudar a API (requer make openapi-check antes)
+npm run dev         # servidor de desenvolvimento com proxy para a API em :8000
+```
+
+`make frontend-check` executa os mesmos gates da CI: tipos da API atualizados,
+ESLint, Prettier, TypeScript, Vitest, `npm audit` e build. `make e2e` roda o
+roteiro demonstrativo no navegador e exige a pilha no ar (`docker compose up --build`)
+e os dados de demonstração (`seed_demo`).
+
+Mudou um serializer ou uma view? Regenere o esquema e os tipos e confira o diff de
+`frontend/src/api/schema.d.ts`. Respostas sem serializer de modelo precisam de um
+serializer de documentação, verificado por `tests/integration/test_api_documentation.py`.
 
 Hooks opcionais (somente neste repositório): `git config --local core.hooksPath .githooks`.
 Eles antecipam lint e testes unitários, mas não substituem a CI nem as proteções remotas.

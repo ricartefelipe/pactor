@@ -6,7 +6,7 @@ import uuid
 from typing import Any, ClassVar
 
 from django.db.models import Q, QuerySet
-from drf_spectacular.utils import extend_schema
+from drf_spectacular.utils import extend_schema, extend_schema_view
 from rest_framework import mixins, serializers, status
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -112,6 +112,7 @@ class CounterpartyPagination(StablePagination):
     ordering = ("name", "id")
 
 
+@extend_schema_view(list=extend_schema(parameters=[CounterpartyFilterSerializer]))
 class CounterpartyViewSet(
     mixins.ListModelMixin, mixins.RetrieveModelMixin, mixins.CreateModelMixin, TenantViewSet
 ):

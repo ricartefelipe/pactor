@@ -41,16 +41,23 @@ dependência real; sem essa marca, o item tem código e testes locais.
 | Operação | `/metrics` com token, métricas de negócio somadas por organização sem identificadores em labels, modo multiprocesso, reprocessamento autorizado e isolado, correlação de logs por contrato, revisão e envelope | `tests/integration/test_operations.py`, `test_log_correlation.py`, `tests/unit/test_gunicorn_hooks.py` |
 | Seed de demonstração | Duas organizações fictícias, idempotente, TOTP de demonstração, recusado em produção | `tests/integration/test_demo_seed.py`; executado duas vezes no banco local |
 | Backup e restauração | `pg_dump` com `pactor_backup`, `pg_restore` em banco novo, conferência de contagens, donos, RLS e triggers; volume de mídia arquivado e restaurado | `docs/RUNBOOKS.md` (exercitado em 2026-11-23) |
+| Aplicação web | Todas as áreas em português; estados de carregamento, vazio, erro, validação e sucesso; troca de organização com descarte do cache; formulários que só aparecem com os dados de referência carregados | `frontend/src/**/*.test.tsx` (Vitest) |
+| Roteiro demonstrativo | 15 passos pela interface com web, workers, agendador, Mailpit e simulador reais; administração com TOTP; axe-core (WCAG 2 A/AA) | `frontend/e2e/demo.spec.ts` (exercitado localmente; também na CI com o Compose) |
+| Contrato da API | Respostas documentadas comparadas com as reais; tipos do frontend gerados e conferidos na CI | `tests/integration/test_api_documentation.py`, `npm run check:api` |
 | Concorrência de revisões | Edição simultânea de rascunho e publicação simultânea | `tests/concurrency/test_revision_races.py` |
 
 ## Em andamento
 
-- Frontend web.
+- Release 0.1.0.
 
 ## Verificações executadas
 
 | Data | Comando | Resultado |
 | --- | --- | --- |
+| 2026-11-23 | `make test` (aplicação web) | 569 testes aprovados; gate core 98,52% / 92,81%; gate crítico 98,06% / 91,59% |
+| 2026-11-23 | `make frontend-check` | Tipos da API atualizados; ESLint, Prettier e TypeScript sem apontamentos; 30 testes Vitest; `npm audit` sem vulnerabilidades; build ok |
+| 2026-11-23 | `npx playwright test` (pilha local: gunicorn, worker, beat, Mailpit, simulador) | 2 testes aprovados (roteiro de 15 passos e administração com TOTP; axe-core sem violações graves) em 2,6 min |
+| 2026-11-23 | `docker build` (estágio do frontend) | Imagem construída com a aplicação web compilada |
 | 2026-11-23 | `make lock-check lint typecheck audit bandit migrations-check openapi-check` (operação, métricas e seed) | Sem apontamentos |
 | 2026-11-23 | `make test` (operação, métricas e seed) | 553 testes aprovados; gate core 98,51% / 92,81%; gate crítico 98,01% / 91,59% |
 | 2026-11-23 | `make test` (integrações OAuth) | 531 testes aprovados; gate core 98,49% / 92,86%; gate crítico 98,05% / 91,57% |
@@ -69,8 +76,11 @@ dependência real; sem essa marca, o item tem código e testes locais.
 ## Pendências reais
 
 - Integração Docusign real (adaptador pronto; requer credenciais de demonstração para `make test-external`).
-- Frontend web e testes ponta a ponta no navegador.
 - Recuperação a um ponto no tempo (WAL) e conferência de hashes após a restauração: só
   procedimentos escritos (`RUNBOOKS.md`).
 - Teste de perda de worker durante a execução (redelivery com `acks_late`) ainda não automatizado.
 - gitleaks e Trivy executados apenas na CI (não disponíveis no ambiente local).
+- Telas da aplicação web fora do roteiro demonstrativo (valores, anexos, acessos,
+  workflows, integrações, operação, estrutura) têm tipos verificados, lint e as
+  regras cobertas no backend, mas ainda não têm teste de interface próprio.
+- Ativação do TOTP sem QR code (a tela mostra a chave e o endereço `otpauth`).

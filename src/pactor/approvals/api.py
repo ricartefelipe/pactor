@@ -6,13 +6,13 @@ import uuid
 from typing import Any, ClassVar
 
 from django.db.models import Q, QuerySet
-from drf_spectacular.utils import extend_schema
+from drf_spectacular.utils import extend_schema, extend_schema_view
 from rest_framework import mixins, serializers, status
 from rest_framework.decorators import action
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from pactor.access.api import TenantViewSet
+from pactor.access.api import IDEMPOTENCY_KEY, TenantViewSet
 from pactor.access.policies import Permission
 from pactor.approvals import services
 from pactor.approvals.domain import Decision
@@ -189,6 +189,7 @@ class WorkflowViewSet(mixins.ListModelMixin, TenantViewSet):
         return Response(WorkflowSerializer(workflow).data, status=status.HTTP_201_CREATED)
 
 
+@extend_schema_view(list=extend_schema(parameters=[RoundFilterSerializer]))
 class ApprovalRoundViewSet(mixins.ListModelMixin, TenantViewSet):
     serializer_class = RoundSerializer
     action_permissions: ClassVar[dict[str, Permission | None]] = {
@@ -215,7 +216,9 @@ class ApprovalRoundViewSet(mixins.ListModelMixin, TenantViewSet):
         round_ = services.rounds_of_contract(self.principal, head.contract_id).get(id=head.id)
         return Response(RoundSerializer(round_).data)
 
-    @extend_schema(request=SubmitSerializer, responses={201: RoundSerializer})
+    @extend_schema(
+        request=SubmitSerializer, responses={201: RoundSerializer}, parameters=[IDEMPOTENCY_KEY]
+    )
     @action(detail=False, methods=["post"])
     def submit(self, request: Request) -> Response:
         def operation() -> Response:
@@ -238,7 +241,9 @@ class ApprovalRoundViewSet(mixins.ListModelMixin, TenantViewSet):
     def inbox(self, _request: Request) -> Response:
         return Response(InboxRoundSerializer(services.inbox(self.principal), many=True).data)
 
-    @extend_schema(request=VoteCreateSerializer, responses={201: VoteSerializer})
+    @extend_schema(
+        request=VoteCreateSerializer, responses={201: VoteSerializer}, parameters=[IDEMPOTENCY_KEY]
+    )
     @action(detail=True, methods=["post"])
     def vote(self, request: Request, pk: uuid.UUID) -> Response:
         def operation() -> Response:

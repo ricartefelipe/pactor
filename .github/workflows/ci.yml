@@ -15,6 +15,7 @@ concurrency:
 env:
   UV_VERSION: "0.13.9"
   PYTHON_VERSION: "3.13"
+  NODE_VERSION: "24.22.2"
   PACTOR_ENVIRONMENT: test
 
 jobs:
@@ -177,3 +178,91 @@ jobs:
           docker run --rm -v /var/run/docker.sock:/var/run/docker.sock
           aquasec/trivy:0.76.1 image --exit-code 1 --severity HIGH,CRITICAL
           --ignore-unfixed --scanners vuln pactor:ci
+
+  frontend:
+    name: Frontend (tipos da API, lint, testes, build)
+    runs-on: ubuntu-24.04
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: astral-sh/setup-uv@1db35dd8eee11c5894872e0b383ae6c406cf738d # v10.4.0
+        with:
+          version: ${{ env.UV_VERSION }}
+          python-version: ${{ env.PYTHON_VERSION }}
+      - name: Esquema OpenAPI atual (fonte dos tipos do frontend)
+        working-directory: .
+        run: |
+          uv sync --frozen
+          mkdir -p var
+          uv run python manage.py spectacular --validate --fail-on-warn --file var/openapi.yaml
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - name: Instalar dependências do lockfile
+        run: npm ci --no-fund
+      - name: Tipos da API gerados a partir do esquema atual
+        run: npm run check:api
+      - name: ESLint
+        run: npm run lint
+      - name: Prettier
+        run: npm run format:check
+      - name: TypeScript estrito
+        run: npm run typecheck
+      - name: Testes de componentes e utilitários
+        run: npm test
+      - name: npm audit (todas as dependências)
+        run: npm audit
+      - name: Build de produção
+        run: npm run build
+
+  e2e:
+    name: Ponta a ponta (Playwright com a pilha do Compose)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Configuração local de demonstração
+        run: cp .env.example .env
+      - name: Subir web, workers, agendador e dependências (imagem com o frontend compilado)
+        run: |
+          docker compose up --detach --build web worker worker-integrations scheduler mailpit
+          for attempt in $(seq 1 60); do
+            if curl --fail --silent http://localhost:8000/health/ready; then exit 0; fi
+            sleep 5
+          done
+          docker compose ps
+          exit 1
+      - name: Dados de demonstração
+        run: docker compose exec -T web python manage.py seed_demo
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - name: Instalar dependências e o navegador
+        working-directory: frontend
+        run: |
+          npm ci --no-fund
+          npx playwright install --with-deps chromium
+      - name: Roteiro demonstrativo (15 passos) e acessibilidade
+        working-directory: frontend
+        env:
+          PACTOR_E2E_URL: http://localhost:8000
+          PACTOR_E2E_MAILPIT: http://localhost:8025
+        run: npx playwright test
+      - name: Logs da pilha
+        if: failure()
+        run: docker compose logs --no-color > compose.log
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        if: failure()
+        with:
+          name: e2e-evidencias
+          path: |
+            frontend/playwright-report
+            frontend/test-results
+            compose.log
+          retention-days: 7

@@ -197,3 +197,34 @@ consultadas no banco a cada coleta, em vez de contadores mantidos pelos processo
 é linear no número de organizações, por causa do contexto de tenant em cada uma. Isso é
 aceitável no intervalo usual de coleta (15 a 60 s) e deve ser revisto se o número de
 organizações crescer muito.
+
+## ADR-026 — Aplicação web na mesma origem, com tipos gerados do OpenAPI
+
+**Contexto.** O frontend precisa da sessão do allauth (cookie HttpOnly), de CSRF e
+da mesma CSP restritiva da API, e não pode divergir silenciosamente do contrato da
+API.
+
+**Decisão.** A aplicação React é compilada no Dockerfile e servida pelo Django na
+mesma origem; não há CORS. Os tipos vêm do esquema OpenAPI. Para que o esquema
+seja confiável, as respostas antes descritas como objeto genérico ganharam
+serializers de documentação, um teste compara essas descrições com as respostas
+reais, e os componentes de requisição e resposta foram separados.
+
+**Consequências.** Divergências entre API e frontend aparecem na compilação. A
+documentação da API passou a refletir as listas não paginadas, os filtros, o
+cabeçalho `Idempotency-Key` e os campos opcionais.
+
+## ADR-027 — ESLint 10 e acessibilidade verificada no navegador
+
+**Contexto.** O `eslint-plugin-jsx-a11y` não é compatível com o ESLint 10, e o ESLint
+9 não recebe mais suporte.
+
+**Decisão.** O projeto usa o ESLint 10 com `typescript-eslint` (strict e stylistic,
+com tipos) e as regras de hooks. A acessibilidade é verificada nos testes de
+componentes, que consultam por papel e rótulo, e no navegador com o axe-core
+(WCAG 2 A/AA), que falha diante de violações graves ou críticas.
+
+**Consequências.** Problemas estáticos de JSX acessível que o plugin pegaria no
+editor passam a aparecer nos testes. O plugin pode voltar quando houver versão
+compatível.
+

@@ -9,6 +9,9 @@ Formato baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e
 
 - Agendamento periódico do ciclo de vigência ausente; agora coberto por teste de guarda.
 - Backup do banco impossível com RLS forçada; papel `pactor_backup` dedicado ao `pg_dump`.
+- Esquema OpenAPI divergente das respostas reais: objetos sem descrição, listas
+  declaradas como paginadas, filtros e `Idempotency-Key` ausentes, corpo de criação
+  de modelos e solicitações e revisão atual do contrato declarada obrigatória.
 
 ### Adicionado
 
@@ -60,6 +63,16 @@ Formato baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e
   arquivos, envelopes, alertas e consultas por requisição, agregadas entre workers do Gunicorn.
 - Reprocessamento autorizado e auditado de falhas de consumidores e de eventos esgotados.
 - Comando `seed_demo` idempotente com duas organizações fictícias.
+- Aplicação web em React e TypeScript, servida na mesma origem da API, com
+  todas as áreas: login com segundo fator, troca de organização, painel,
+  contrapartes, solicitações, modelos, contratos (rascunho, revisões, comparação,
+  comentários, aprovação, assinatura com simulador, vigência, prazos, renovação,
+  obrigações, valores, anexos e acessos), aprovações e delegações, calendário,
+  pesquisa, relatórios, usuários e convites, estrutura, workflows, integrações,
+  operação e auditoria.
+- Tipos do frontend gerados a partir do OpenAPI e verificados na CI.
+- Roteiro demonstrativo de 15 passos no navegador (Playwright) contra a pilha
+  completa, com verificação de acessibilidade (axe-core).
 - Runbooks com backup e restauração do banco e dos documentos exercitados, e roteiro demonstrativo.
 - Prazos com regra explícita (dias corridos/úteis, feriados configurados, ajuste, fim de mês,
   bissextos), renovação automática somente autorizada e registrada, alertas idempotentes e
