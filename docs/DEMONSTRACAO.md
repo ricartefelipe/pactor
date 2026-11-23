@@ -78,4 +78,8 @@ testes de backend que cobrem cada regra em detalhe.
 | 15 | Entrar na Organização B | Entrar como `gestora.b@exemplo.test`: a pesquisa não encontra nada, o endereço do contrato da A responde "não encontrado" e a contraparte não aparece. | `test_identity.py::test_switch_to_foreign_organization_is_indistinguishable_from_missing`, `test_tenant_isolation.py`, `test_search.py::test_search_is_isolated_between_organizations` |
 
 O mesmo arquivo verifica a administração com segundo fator (`admin.a@exemplo.test`
-com TOTP) e roda o axe-core (WCAG 2 A/AA) nas telas principais.
+com TOTP) e roda o axe-core (WCAG 2 A/AA) nas telas principais. As demais telas
+(estrutura, convites, workflows, integrações, operação, auditoria, acesso, anexos,
+valores, modelos, solicitações, contrapartes, calendário e relatórios) são
+exercitadas por `frontend/e2e/telas.spec.ts`, inclusive o envio de anexo liberado
+pelo ClamAV real.

@@ -11,6 +11,16 @@ Formato baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e
   (a chave em texto continua disponível).
 - Comando `verify_documents`: confere arquivos, prévias e documentos de assinatura contra
   SHA-256 e tamanho registrados (somente leitura, com erro em caso de divergência).
+- Testes no navegador para as telas fora do roteiro demonstrativo, com acessibilidade
+  verificada; a CI passa a subir ClamAV e o worker de extração para o envio de anexos.
+- Registro de valor de índice (série, fonte, período, variação e nota de origem) na aba
+  Valores do contrato, antes disponível apenas pela API.
+
+### Corrigido
+
+- Convite sem departamentos era recusado pela API ("Esta lista pode não estar vazia").
+- Erros de validação gerais (ex.: período do calendário longo demais) apareciam apenas como
+  "Dados inválidos."; a tela passa a mostrar o motivo.
 
 ## [0.1.0] - 2026-11-23
 
