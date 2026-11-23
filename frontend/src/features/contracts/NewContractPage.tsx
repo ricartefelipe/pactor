@@ -17,6 +17,7 @@ import { Restricted } from "../../components/Restricted";
 import { WhenReady } from "../../components/states";
 import { Button, PageHeader } from "../../components/ui";
 import { useIdempotencyKey } from "../../lib/idempotency";
+import { decimalText } from "../../lib/format";
 import { CONFIDENTIALITY, CONTRACT_TYPE, enumValue, options, PARTY_ROLE } from "../../lib/labels";
 
 function NewContractForm() {
@@ -71,7 +72,7 @@ function NewContractForm() {
       classification: values.classification ?? "",
       tags,
       department_id: values.department_id ?? null,
-      total_value: values.total_value ?? null,
+      total_value: values.total_value ? decimalText(values.total_value) : null,
       planned_start: values.planned_start ?? null,
       planned_end: values.planned_end ?? null,
       ...(values.initial_content ? { initial_content: values.initial_content } : {}),
@@ -157,8 +158,8 @@ function NewContractForm() {
                 label="Valor total (R$)"
                 name="total_value"
                 inputMode="decimal"
-                pattern="[0-9]+([.][0-9]{1,2})?"
-                hint="Ex.: 36000.00"
+                pattern="[0-9]+([.,][0-9]{1,2})?"
+                hint="Ex.: 36000,00"
                 error={errors.total_value}
               />
               <TextField

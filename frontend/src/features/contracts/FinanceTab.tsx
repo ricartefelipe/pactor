@@ -18,7 +18,7 @@ import { useNotify } from "../../components/notifications";
 import { Restricted } from "../../components/Restricted";
 import { EmptyState, QueryView } from "../../components/states";
 import { Badge, Button, Section, Table } from "../../components/ui";
-import { formatDate, formatMoney, todayIso } from "../../lib/format";
+import { decimalText, formatDate, formatMoney, todayIso } from "../../lib/format";
 import {
   FREQUENCY,
   INSTALLMENT_KIND,
@@ -28,7 +28,7 @@ import {
 } from "../../lib/labels";
 import { useContractContext } from "./ContractLayout";
 
-const MONEY_PATTERN = "[0-9]+([.][0-9]{1,2})?";
+const MONEY_PATTERN = "[0-9]+([.,][0-9]{1,2})?";
 
 function ConfirmDialog({
   installment,
@@ -63,7 +63,7 @@ function ConfirmDialog({
       onClose={onClose}
       onSubmit={(form) => {
         confirm.mutate({
-          amount: textOf(form, "amount"),
+          amount: decimalText(textOf(form, "amount")),
           confirmed_on: textOf(form, "confirmed_on"),
           reference: textOf(form, "reference"),
         });
@@ -126,7 +126,7 @@ function ScheduleForms({ contractId }: { contractId: string }) {
     const frequency = enumValue(FREQUENCY, values.frequency);
     if (!frequency) return;
     schedule.mutate({
-      total: values.total ?? "",
+      total: decimalText(values.total ?? ""),
       parts: Number(values.parts ?? "1"),
       first_due: values.first_due ?? "",
       frequency,
@@ -140,7 +140,7 @@ function ScheduleForms({ contractId }: { contractId: string }) {
     milestone.mutate({
       description: values.description ?? "",
       due_date: values.due_date ?? "",
-      amount: values.amount ?? "",
+      amount: decimalText(values.amount ?? ""),
     });
   }
 
@@ -243,7 +243,7 @@ function IndexValueForm() {
         series_name: values.series_name ?? "",
         index_source: values.index_source ?? "",
         period: values.period ?? "",
-        rate_percent: values.rate_percent ?? "",
+        rate_percent: decimalText(values.rate_percent ?? ""),
         source_note: values.source_note ?? "",
         is_demonstrative: new FormData(form).get("is_demonstrative") === "on",
       },
@@ -287,8 +287,8 @@ function IndexValueForm() {
         name="rate_percent"
         required
         inputMode="decimal"
-        pattern="-?[0-9]+([.][0-9]{1,6})?"
-        hint="Ex.: 4.5 para 4,5%"
+        pattern="-?[0-9]+([.,][0-9]{1,6})?"
+        hint="Ex.: 4,5 para 4,5%"
         error={errors.rate_percent}
       />
       <TextField

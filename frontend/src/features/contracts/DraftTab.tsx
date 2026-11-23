@@ -44,8 +44,8 @@ function GenerationField({ field }: { field: TemplateField }) {
         <TextField
           {...common}
           inputMode="decimal"
-          pattern="-?[0-9]+([.][0-9]+)?"
-          hint="Use ponto como separador decimal."
+          pattern="-?[0-9]+([.,][0-9]+)?"
+          hint="Sem separador de milhar, ex.: 1500,00"
         />
       );
     case "choice":
