@@ -26,7 +26,7 @@ class DecimalTextField(serializers.CharField):
 
     def to_internal_value(self, data: object) -> str:
         if not isinstance(data, str):
-            raise serializers.ValidationError("Envie o valor como texto, ex.: \"1500.00\".")
+            raise serializers.ValidationError('Envie o valor como texto, ex.: "1500.00".')
         return str(super().to_internal_value(data))
 
 
