@@ -28,7 +28,12 @@ celerybeat-schedule*
 backups/
 *.dump
 *.sql.gz
+*.tar
 *.tar.gz
+*.tgz
+*.zst
+# pg_dump em texto puro salvo na raiz (scripts .sql versionados ficam em subpastas)
+/*.sql
 
 # Chaves e certificados (ex.: DOCUSIGN_PRIVATE_KEY_PATH)
 *.pem
