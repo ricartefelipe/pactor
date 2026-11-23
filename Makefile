@@ -10,7 +10,7 @@ export CELERY_BROKER_URL ?= amqp://pactor:pactor-local@localhost:5672/pactor
 export REDIS_URL ?= redis://localhost:6379/0
 
 .PHONY: mutation test-external pytest infra lock-check lint format typecheck audit bandit secrets test-unit test coverage \
-        migrations-check openapi-check check frontend-check e2e
+        migrations-check openapi-check check frontend-check e2e pitr-drill
 
 infra:
 	docker compose up -d postgres rabbitmq redis mailpit clamav
@@ -69,6 +69,11 @@ frontend-check: openapi-check
 # (docker compose up --build) e os dados de demonstração (seed_demo).
 e2e:
 	cd frontend && npx playwright test
+
+# Recuperação a um ponto no tempo em contêineres descartáveis (ver docs/RUNBOOKS.md).
+# Uso: make pitr-drill DUMP=backups/pactor.dump
+pitr-drill:
+	scripts/pitr-drill.sh $(DUMP)
 
 check: lock-check lint typecheck audit bandit migrations-check openapi-check test frontend-check
 
