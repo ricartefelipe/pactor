@@ -189,6 +189,7 @@ only_mutate = [
     "src/pactor/counterparties/domain.py",
     "src/pactor/drafting/domain.py",
     "src/pactor/contracts/lifecycle.py",
+    "src/pactor/deadlines/calendar.py",
 ]
 pytest_add_cli_args_test_selection = ["tests/unit"]
 pytest_add_cli_args = ["-p", "no:cacheprovider", "-q"]
@@ -248,6 +249,9 @@ include = [
     "src/pactor/files/inspection.py",
     "src/pactor/files/scanner.py",
     "src/pactor/files/selectors.py",
+    "src/pactor/deadlines/calendar.py",
+    "src/pactor/deadlines/services.py",
+    "src/pactor/obligations/services.py",
 ]
 exclude = []
 min_lines = 95.0

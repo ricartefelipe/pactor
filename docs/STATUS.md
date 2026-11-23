@@ -30,6 +30,11 @@ dependência real; sem essa marca, o item tem código e testes locais.
 | Aditivos | Alterações no snapshot aprovado, efeito após assinatura, condições por data, original preservado | `tests/integration/test_lifecycle.py` |
 | Arquivos | Quarentena inacessível, scanner indisponível, arquivo malformado, macros, referência externa, caminhos, bomba ZIP, PDF ativo/criptografado, hash alterado, cota, anexos no fingerprint | `tests/unit/test_file_inspection.py`, `tests/integration/test_files.py` |
 | ClamAV real | EICAR bloqueado e PDF liberado pelo pipeline | `tests/infra/test_clamav.py` (exercitado) |
+| Prazos e calendário | Dias úteis, feriados, ajuste, fim de mês, bissextos, fuso da organização, recálculo após renovação | `tests/unit/test_calendar.py`, `tests/integration/test_deadlines_obligations.py` |
+| Alertas | Únicos por alvo/tipo/data, disparo único após indisponibilidade, cancelamento, e-mail a destinatários ativos | `test_deadlines_obligations.py` |
+| Renovação | Automática somente autorizada, registrada, antes do encerramento, bloqueada por não renovação | `test_deadlines_obligations.py` |
+| Obrigações | Ocorrências estáveis e idempotentes, bissexto, mudança de cronograma preservando concluídas, evidência, dependência, aprovação | `test_deadlines_obligations.py` |
+| Agendamento | Tasks agendadas e consumidores roteados registrados | `tests/unit/test_scheduling.py` |
 | Concorrência de revisões | Edição simultânea de rascunho e publicação simultânea | `tests/concurrency/test_revision_races.py` |
 
 ## Em andamento
@@ -40,6 +45,7 @@ dependência real; sem essa marca, o item tem código e testes locais.
 
 | Data | Comando | Resultado |
 | --- | --- | --- |
+| 2026-11-23 | `make test` (prazos e obrigações) | 483 testes aprovados; gate core 98,71% / 93,55%; gate crítico 98,24% / 92,27% |
 | 2026-11-23 | `make test` (arquivos e ClamAV) | 445 testes aprovados; gate core 98,35% / 93,11%; gate crítico 97,83% / 91,67% |
 | 2026-11-22 | `make test` (vigência e aditivos) | 407 testes aprovados; gate core 98,60% / 93,46%; gate crítico 98,27% / 92,17% |
 | 2026-11-22 | `make test` (modelos e solicitações) | 375 testes aprovados; gate core 98,56% / 93,27%; gate crítico 98,24% / 92,05% |

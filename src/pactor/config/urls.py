@@ -10,10 +10,12 @@ from pactor.contracts import lifecycle_api
 from pactor.contracts.api import ContractViewSet
 from pactor.core import health
 from pactor.counterparties.api import CounterpartyViewSet
+from pactor.deadlines import api as deadlines
 from pactor.drafting.api import TemplateViewSet
 from pactor.files import api as files
 from pactor.identity import api as identity
 from pactor.intake.api import RequestViewSet
+from pactor.obligations import api as obligations
 from pactor.signatures import webhooks
 from pactor.signatures.api import EnvelopeViewSet
 
@@ -54,6 +56,49 @@ api_v1 = [
         "contracts/<uuid:contract_id>/amendment-changes",
         lifecycle_api.AmendmentChangesView.as_view(),
         name="contract-amendment-changes",
+    ),
+    path("calendar", deadlines.CalendarView.as_view(), name="calendar"),
+    path("alerts", deadlines.AlertsView.as_view(), name="alerts"),
+    path("holiday-calendars", deadlines.HolidayCalendarsView.as_view(), name="holiday-calendars"),
+    path(
+        "contracts/<uuid:contract_id>/deadlines",
+        deadlines.ContractDeadlinesView.as_view(),
+        name="contract-deadlines",
+    ),
+    path(
+        "deadlines/<uuid:deadline_id>/complete",
+        deadlines.DeadlineCompleteView.as_view(),
+        name="deadline-complete",
+    ),
+    path(
+        "contracts/<uuid:contract_id>/renewal",
+        deadlines.RenewalView.as_view(),
+        name="contract-renewal",
+    ),
+    path(
+        "contracts/<uuid:contract_id>/renewal/decline",
+        deadlines.NonRenewalView.as_view(),
+        name="contract-non-renewal",
+    ),
+    path(
+        "contracts/<uuid:contract_id>/obligations",
+        obligations.ContractObligationsView.as_view(),
+        name="contract-obligations",
+    ),
+    path(
+        "obligations/<uuid:obligation_id>/reschedule",
+        obligations.RescheduleView.as_view(),
+        name="obligation-reschedule",
+    ),
+    path(
+        "occurrences/<uuid:occurrence_id>/complete",
+        obligations.OccurrenceCompleteView.as_view(),
+        name="occurrence-complete",
+    ),
+    path(
+        "occurrences/<uuid:occurrence_id>/review",
+        obligations.OccurrenceReviewView.as_view(),
+        name="occurrence-review",
     ),
     path("files", files.FileUploadView.as_view(), name="file-upload"),
     path("files/<uuid:file_id>", files.FileDetailView.as_view(), name="file-detail"),
