@@ -384,6 +384,11 @@ def attach(
     )
     if include_in_submission:
         contracts.invalidate_for_content_change(contract, reason="attachments_changed")
+    outbox.emit(
+        "contracts.updated",
+        {"contract_id": str(contract.id)},
+        organization_id=contract.organization_id,
+    )
     audit.record(
         principal,
         action="attachment.added",
@@ -415,6 +420,11 @@ def detach(principal: Principal, contract_id: uuid.UUID, attachment_id: uuid.UUI
     attachment.save(update_fields=["removed_at"])
     if attachment.include_in_submission:
         contracts.invalidate_for_content_change(contract, reason="attachments_changed")
+    outbox.emit(
+        "contracts.updated",
+        {"contract_id": str(contract.id)},
+        organization_id=contract.organization_id,
+    )
     audit.record(
         principal,
         action="attachment.removed",

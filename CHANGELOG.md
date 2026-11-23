@@ -63,6 +63,8 @@ Formato baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e
 - Valores e compromissos: parcelas com rateio exato, marcos, confirmações imutáveis, índices com
   período e origem registrados, reajustes que preservam valores confirmados e resumo que distingue
   valor contratado, projeção, obrigação e confirmação.
+- Pesquisa full-text com autorização antes de resultados, snippets, contagens, facetas e
+  sugestões; indexação por revisão que ignora jobs atrasados; painel e exportação CSV.
 - Validação do esquema OpenAPI sem avisos como gate da CI.
 - Mutation testing do núcleo de regras (manual e semanal).
 - Autenticação por e-mail com confirmação e MFA (django-allauth headless).

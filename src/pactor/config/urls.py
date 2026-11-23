@@ -17,6 +17,7 @@ from pactor.finance import api as finance
 from pactor.identity import api as identity
 from pactor.intake.api import RequestViewSet
 from pactor.obligations import api as obligations
+from pactor.search import api as search
 from pactor.signatures import webhooks
 from pactor.signatures.api import EnvelopeViewSet
 
@@ -84,6 +85,12 @@ api_v1 = [
         name="installment-confirm",
     ),
     path("indexes", finance.IndexValuesView.as_view(), name="index-values"),
+    path("search", search.SearchView.as_view(), name="search"),
+    path("search/suggest", search.SuggestView.as_view(), name="search-suggest"),
+    path("reports/dashboard", search.DashboardView.as_view(), name="reports-dashboard"),
+    path(
+        "reports/contracts.csv", search.ContractsExportView.as_view(), name="reports-contracts-csv"
+    ),
     path("calendar", deadlines.CalendarView.as_view(), name="calendar"),
     path("alerts", deadlines.AlertsView.as_view(), name="alerts"),
     path("holiday-calendars", deadlines.HolidayCalendarsView.as_view(), name="holiday-calendars"),

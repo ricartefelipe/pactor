@@ -63,6 +63,7 @@ INSTALLED_APPS = [
     "pactor.deadlines",
     "pactor.obligations",
     "pactor.finance",
+    "pactor.search",
 ]
 
 MIDDLEWARE = [

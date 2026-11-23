@@ -280,6 +280,11 @@ def update_metadata(
     contract.version += 1
     contract.updated_at = timezone.now()
     contract.save()
+    outbox.emit(
+        "contracts.updated",
+        {"contract_id": str(contract.id)},
+        organization_id=contract.organization_id,
+    )
     audit.record(
         principal,
         action="contract.metadata_updated",

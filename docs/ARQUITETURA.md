@@ -383,3 +383,20 @@ flowchart LR
   é embutido ou inventado.
 - **Reajustes** alteram apenas parcelas previstas a partir da data de efeito e registram antes/depois
   de cada parcela. Confirmações, valores de índice e reajustes são somente-inserção no banco.
+
+## Pesquisa e relatórios
+
+- **Motor**: busca textual do PostgreSQL (`tsvector`, configuração `portuguese`, índice GIN). Sem
+  Elasticsearch: o volume esperado por organização e a necessidade de autorização por linha não
+  justificam outro serviço.
+- **Conteúdo indexado**: referência e título (peso A); contraparte, documento, etiquetas e
+  classificação (B); conteúdo da revisão e texto extraído de anexos **liberados** (C).
+- **Revisão correta**: cada evento de publicação indexa a revisão do evento. O upsert só grava se
+  a revisão do job for igual ou mais nova que a indexada; um job atrasado nunca sobrescreve
+  conteúdo mais recente. Mudanças de metadados ou anexos reindexam a revisão vigente.
+- **Autorização antes do resultado**: a consulta parte de `visible_contracts(principal)`; total,
+  página, snippets (`ts_headline`), facetas, sugestões, painel e exportação CSV são calculados
+  somente sobre esse conjunto. Paginação limitada (até 50 por página, 100 páginas) com ordenação
+  determinística (relevância, referência, id).
+- **Exportação**: CSV com neutralização de fórmulas (células iniciadas por `= + - @`), até 5.000
+  linhas, exige `reports.read`.

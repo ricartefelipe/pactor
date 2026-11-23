@@ -36,6 +36,7 @@ dependência real; sem essa marca, o item tem código e testes locais.
 | Obrigações | Ocorrências estáveis e idempotentes, bissexto, mudança de cronograma preservando concluídas, evidência, dependência, aprovação | `test_deadlines_obligations.py` |
 | Agendamento | Tasks agendadas e consumidores roteados registrados | `tests/unit/test_scheduling.py` |
 | Valores | Decimal/BRL, recusa de float e não finitos, rateio exato, meio-par, confirmações e reajustes imutáveis, resumo | `tests/unit/test_money.py`, `tests/integration/test_finance.py` |
+| Pesquisa | Permissões diferentes, facetas/contagens/sugestões/exportação sem vazamento, indexação atrasada, anexos não liberados fora do índice, isolamento | `tests/integration/test_search.py` |
 | Concorrência de revisões | Edição simultânea de rascunho e publicação simultânea | `tests/concurrency/test_revision_races.py` |
 
 ## Em andamento
@@ -46,6 +47,7 @@ dependência real; sem essa marca, o item tem código e testes locais.
 
 | Data | Comando | Resultado |
 | --- | --- | --- |
+| 2026-11-23 | `make test` (pesquisa e relatórios) | 525 testes aprovados; gate core 98,55% / 93,09%; gate crítico 98,10% / 91,77% |
 | 2026-11-23 | `make test` (valores e compromissos) | 518 testes aprovados; gate core 98,55% / 93,00%; gate crítico 98,11% / 91,82% |
 | 2026-11-23 | `make test` (prazos e obrigações) | 483 testes aprovados; gate core 98,71% / 93,55%; gate crítico 98,24% / 92,27% |
 | 2026-11-23 | `make test` (arquivos e ClamAV) | 445 testes aprovados; gate core 98,35% / 93,11%; gate crítico 97,83% / 91,67% |

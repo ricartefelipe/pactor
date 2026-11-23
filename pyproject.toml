@@ -255,6 +255,9 @@ include = [
     "src/pactor/obligations/services.py",
     "src/pactor/finance/money.py",
     "src/pactor/finance/services.py",
+    "src/pactor/search/services.py",
+    "src/pactor/search/indexing.py",
+    "src/pactor/search/reports.py",
 ]
 exclude = []
 min_lines = 95.0
