@@ -5,6 +5,12 @@ Formato baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e
 
 ## [Não lançado]
 
+## [0.1.0] - 2026-11-23
+
+Primeira versão: plataforma completa de gestão do ciclo de vida de contratos,
+com API, aplicação web, workers, agendador e roteiro demonstrativo comprovado
+no navegador.
+
 ### Corrigido
 
 - Agendamento periódico do ciclo de vigência ausente; agora coberto por teste de guarda.
@@ -90,3 +96,6 @@ Formato baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e
 - Mutation testing do núcleo de regras (manual e semanal).
 - Autenticação por e-mail com confirmação e MFA (django-allauth headless).
 - Pipeline de CI com lockfile, Ruff, mypy, pip-audit, Bandit, gitleaks, testes, gates de cobertura e análise da imagem.
+
+[Não lançado]: https://github.com/ricartefelipe/pactor/compare/v0.1.0...develop
+[0.1.0]: https://github.com/ricartefelipe/pactor/releases/tag/v0.1.0

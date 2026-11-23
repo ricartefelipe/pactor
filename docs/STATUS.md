@@ -46,9 +46,11 @@ dependência real; sem essa marca, o item tem código e testes locais.
 | Contrato da API | Respostas documentadas comparadas com as reais; tipos do frontend gerados e conferidos na CI | `tests/integration/test_api_documentation.py`, `npm run check:api` |
 | Concorrência de revisões | Edição simultânea de rascunho e publicação simultânea | `tests/concurrency/test_revision_races.py` |
 
-## Em andamento
+## Versões
 
-- Release 0.1.0.
+| Versão | Data | Conteúdo |
+| --- | --- | --- |
+| 0.1.0 | 2026-11-23 | Primeira versão: todas as áreas acima, aplicação web e roteiro demonstrativo no navegador |
 
 ## Verificações executadas
 
