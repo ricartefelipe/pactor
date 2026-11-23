@@ -1,0 +1,36 @@
+name: Mutation testing
+
+# Execução manual e semanal: o custo (centenas de mutantes) não cabe em cada
+# pull request. O resultado é publicado como artefato para análise dos
+# mutantes sobreviventes; a suíte unitária que mata os mutantes roda em todo PR.
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "0 6 * * 1"
+
+permissions:
+  contents: read
+
+jobs:
+  mutmut:
+    name: Mutantes no núcleo de regras
+    runs-on: ubuntu-24.04
+    env:
+      PACTOR_ENVIRONMENT: test
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: astral-sh/setup-uv@1db35dd8eee11c5894872e0b383ae6c406cf738d # v10.4.0
+        with:
+          version: "0.13.9"
+          python-version: "3.13"
+      - run: uv sync --frozen
+      - name: mutmut run
+        run: uv run mutmut run
+      - name: Resultado
+        if: always()
+        run: uv run mutmut results > mutmut-results.txt
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        if: always()
+        with:
+          name: mutmut-results
+          path: mutmut-results.txt

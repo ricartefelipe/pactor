@@ -13,6 +13,7 @@ from pactor.contracts.domain import (
     SubmissionSnapshot,
     allows_new_revision,
     can_transition,
+    canonical_json,
     sha256_text,
 )
 from pactor.counterparties.domain import (
@@ -136,3 +137,56 @@ def test_diff_counts_and_kinds() -> None:
     assert kinds == [ChangeKind.EQUAL, ChangeKind.REPLACE, ChangeKind.EQUAL, ChangeKind.INSERT]
     assert (diff.inserted, diff.deleted) == (2, 1)
     assert compare_text("a\nb", "a").hunks[-1].kind is ChangeKind.DELETE
+
+
+def test_fingerprint_format_is_stable_across_versions() -> None:
+    """Fingerprints gravados precisam ser reproduzíveis: o formato canônico é fixo.
+
+    Mudar ordenação de chaves, separadores ou codificação alteraria hashes já
+    registrados em revisões, rodadas e votos; este valor de referência impede isso.
+    """
+    snapshot = SubmissionSnapshot(
+        content_sha256=sha256_text("Cláusula única."),
+        metadata={"title": "Contrato", "total_value": "1500.00", "parent_id": None},
+        attachments=(
+            AttachmentDigest("arq-2", "anexo B.pdf", "b" * 64),
+            AttachmentDigest("arq-1", "anexo A.pdf", "a" * 64),
+        ),
+    )
+    assert (
+        sha256_text("Cláusula única.")
+        == "e6c0b4c2d0803fa94b2e623674dd7023e284feb45efbcfac3aa3c5a6a633331e"
+    )
+    assert (
+        snapshot.fingerprint() == "0af71be965612293cff1a904a4a32939d949f26e42cb96d78ac2b030b12ff72b"
+    )
+
+
+def test_canonical_json_is_compact_sorted_and_unescaped() -> None:
+    assert canonical_json({"b": 1, "a": ["é", None]}) == '{"a":["é",null],"b":1}'
+
+
+@pytest.mark.parametrize(
+    ("kind", "document"),
+    [
+        # Referências conhecidas, independentes da implementação, cobrindo
+        # dígitos verificadores 0 (restos 0 e 1 do módulo 11).
+        (PartyKind.INDIVIDUAL, "12345678909"),
+        (PartyKind.INDIVIDUAL, "11144477735"),
+        (PartyKind.INDIVIDUAL, "39053344705"),
+        (PartyKind.COMPANY, "11444777000161"),
+        (PartyKind.COMPANY, "11222333000181"),
+        (PartyKind.COMPANY, "04252011000110"),
+    ],
+)
+def test_known_valid_documents(kind: PartyKind, document: str) -> None:
+    assert normalize_document(kind, document) == document
+
+
+def test_document_error_messages_are_specific() -> None:
+    with pytest.raises(InvalidDocumentError, match="11 dígitos"):
+        normalize_document(PartyKind.INDIVIDUAL, "123")
+    with pytest.raises(InvalidDocumentError, match="repetidos"):
+        normalize_document(PartyKind.INDIVIDUAL, "00000000000")
+    with pytest.raises(InvalidDocumentError, match="verificadores"):
+        normalize_document(PartyKind.INDIVIDUAL, "12345678900")
