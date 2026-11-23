@@ -80,8 +80,7 @@ dependência real; sem essa marca, o item tem código e testes locais.
 ## Pendências reais
 
 - Integração Docusign real (adaptador pronto; requer credenciais de demonstração para `make test-external`).
-- Recuperação a um ponto no tempo (WAL) e conferência de hashes após a restauração: só
-  procedimentos escritos (`RUNBOOKS.md`).
+- Recuperação a um ponto no tempo (WAL): só procedimento escrito (`RUNBOOKS.md`).
 - Teste de perda de worker durante a execução (redelivery com `acks_late`) ainda não automatizado.
 - gitleaks e Trivy executados apenas na CI (não disponíveis no ambiente local).
 - Telas da aplicação web fora do roteiro demonstrativo (valores, anexos, acessos,
