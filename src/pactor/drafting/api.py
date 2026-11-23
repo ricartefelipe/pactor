@@ -91,6 +91,7 @@ class TemplateViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, TenantVi
             .order_by("name", "id")
         )
 
+    @extend_schema(request=TemplateCreateSerializer, responses={201: TemplateSerializer})
     def create(self, request: Request, *args: Any, **kwargs: Any) -> Response:
         serializer = TemplateCreateSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
