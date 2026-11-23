@@ -15,6 +15,7 @@ from contextlib import contextmanager
 from contextvars import ContextVar, Token
 from typing import Final
 
+from django.db import connection
 from django.http import HttpRequest, HttpResponse
 from prometheus_client import Counter, Histogram
 
@@ -26,6 +27,8 @@ _CORRELATION_KEYS: Final = (
     "envelope_id",
     "task_id",
 )
+# Chaves de entidades que podem vir de parâmetros de rota ou de payloads de eventos.
+_ENTITY_KEYS: Final = ("contract_id", "revision_id", "envelope_id")
 # Pares imutáveis: cada bloco cria uma nova tupla e restaura a anterior ao sair.
 _log_context: ContextVar[tuple[tuple[str, str], ...]] = ContextVar("pactor_log_context", default=())
 
@@ -35,6 +38,17 @@ HTTP_LATENCY = Histogram(
     "pactor_http_request_duration_seconds",
     "Latência das requisições HTTP por rota resolvida.",
     labelnames=("method", "route", "status_class"),
+)
+HTTP_DB_QUERIES = Histogram(
+    "pactor_http_db_queries",
+    "Consultas ao banco por requisição, por rota resolvida (detecta N+1).",
+    labelnames=("route",),
+    buckets=(1, 2, 5, 10, 20, 50, 100, 200),
+)
+CONSUMER_FAILURES = Counter(
+    "pactor_consumer_failures_total",
+    "Falhas de consumidores de eventos (nomes fixos de consumidores).",
+    labelnames=("consumer",),
 )
 HTTP_ERRORS = Counter(
     "pactor_http_errors_total",
@@ -59,6 +73,28 @@ def bind_log_context(**values: str | None) -> Iterator[None]:
         yield
     finally:
         _log_context.reset(token)
+
+
+def extend_log_context(**values: str) -> None:
+    """Acrescenta chaves ao bloco ``bind_log_context`` já aberto.
+
+    Serve para dados conhecidos só no meio do bloco (ex.: a organização,
+    resolvida após a autenticação). A saída do bloco externo restaura o
+    contexto anterior, descartando também estas chaves.
+    """
+    unknown = set(values) - set(_CORRELATION_KEYS)
+    if unknown:
+        raise ValueError(f"Chaves de correlação desconhecidas: {sorted(unknown)}")
+    _log_context.set(tuple({**dict(_log_context.get()), **values}.items()))
+
+
+def entity_correlation(values: Mapping[str, object]) -> dict[str, str]:
+    """Extrai contrato, revisão e envelope de parâmetros de rota ou payload de evento."""
+    return {
+        key: str(values[key])
+        for key in _ENTITY_KEYS
+        if isinstance(values.get(key), str | uuid.UUID) and str(values[key])
+    }
 
 
 class LogContextFilter(logging.Filter):
@@ -121,6 +157,24 @@ def _request_id_from(request: HttpRequest) -> str:
     return uuid.uuid4().hex
 
 
+class _QueryCounter:
+    """Wrapper de execução do Django que conta consultas da requisição."""
+
+    def __init__(self) -> None:
+        self.count = 0
+
+    def __call__(
+        self,
+        execute: Callable[[str, object, bool, dict[str, object]], object],
+        sql: str,
+        params: object,
+        many: bool,  # noqa: FBT001 - posição e tipo definidos pela interface execute_wrapper do Django
+        context: dict[str, object],
+    ) -> object:
+        self.count += 1
+        return execute(sql, params, many, context)
+
+
 class RequestContextMiddleware:
     """Define o identificador de correlação e registra métricas da requisição."""
 
@@ -130,7 +184,8 @@ class RequestContextMiddleware:
     def __call__(self, request: HttpRequest) -> HttpResponse:
         request_id = _request_id_from(request)
         started = time.perf_counter()
-        with bind_log_context(request_id=request_id):
+        counter = _QueryCounter()
+        with bind_log_context(request_id=request_id), connection.execute_wrapper(counter):
             response = self.get_response(request)
         response["X-Request-ID"] = request_id
         match = getattr(request, "resolver_match", None)
@@ -141,6 +196,7 @@ class RequestContextMiddleware:
         HTTP_LATENCY.labels(request.method or "", route, status_class).observe(
             time.perf_counter() - started,
         )
+        HTTP_DB_QUERIES.labels(route).observe(counter.count)
         if response.status_code >= _SERVER_ERROR:
             HTTP_ERRORS.labels(request.method or "", route).inc()
         return response

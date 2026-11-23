@@ -138,9 +138,10 @@ module = [
 disallow_any_explicit = false
 
 [[tool.mypy.overrides]]
-# Extensões do drf-spectacular são registradas por __init_subclass__, que não
-# tem anotações na biblioteca; a exceção vale somente para este módulo.
-module = ["pactor.access.schema"]
+# Chamadas a APIs sem anotações em bibliotecas: registro de extensões do
+# drf-spectacular (__init_subclass__) e funções multiprocesso do prometheus_client.
+# A exceção vale somente para estes três módulos.
+module = ["pactor.access.schema", "pactor.core.metrics", "pactor.config.gunicorn"]
 disallow_untyped_calls = false
 
 [[tool.mypy.overrides]]

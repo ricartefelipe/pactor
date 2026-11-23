@@ -95,6 +95,7 @@ class EnvelopeFilterSerializer(serializers.Serializer[None]):
 
 class EnvelopeViewSet(TenantViewSet):
     serializer_class = EnvelopeSerializer
+    pk_log_key = "envelope_id"
     action_permissions: ClassVar[dict[str, Permission | None]] = {
         "list": None,
         "retrieve": None,

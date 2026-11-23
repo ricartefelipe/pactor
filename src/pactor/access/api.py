@@ -12,6 +12,8 @@ import json
 from collections.abc import Callable
 from typing import TYPE_CHECKING, Any, ClassVar
 
+from django.http import HttpRequest
+from django.http.response import HttpResponseBase
 from oauth2_provider.models import AccessToken
 from rest_framework.renderers import JSONRenderer
 from rest_framework.request import Request
@@ -24,6 +26,7 @@ from pactor.access.policies import Permission, Principal
 from pactor.access.principal import activate_request_principal
 from pactor.core import idempotency
 from pactor.core.errors import AccessDeniedError
+from pactor.core.observability import bind_log_context, entity_correlation, extend_log_context
 from pactor.identity.models import User
 from pactor.integrations.services import principal_for_token
 
@@ -39,7 +42,16 @@ class TenantScopedMixin(APIView):
 
     #: Permissão por ação (nome do handler/ação do viewset). ``"*"`` vale para as demais.
     action_permissions: ClassVar[dict[str, Permission | None]] = {}
+    #: Chave de correlação de logs representada pelo ``pk`` da rota (ex.: ``"contract_id"``).
+    pk_log_key: ClassVar[str | None] = None
     principal: Principal
+
+    def dispatch(self, request: HttpRequest, *args: Any, **kwargs: Any) -> HttpResponseBase:
+        route = dict(kwargs)
+        if self.pk_log_key is not None and "pk" in route:
+            route[self.pk_log_key] = route["pk"]
+        with bind_log_context(**entity_correlation(route)):
+            return super().dispatch(request, *args, **kwargs)
 
     def initial(self, request: Request, *args: Any, **kwargs: Any) -> None:
         super().initial(request, *args, **kwargs)
@@ -51,6 +63,7 @@ class TenantScopedMixin(APIView):
             if not isinstance(user, User):
                 raise AccessDeniedError("Autenticação obrigatória.")
             self.principal = activate_request_principal(request, user)
+        extend_log_context(organization_id=str(self.principal.organization_id))
         permission = self._required_permission(request)
         if permission is not None:
             authorize(self.principal, permission)

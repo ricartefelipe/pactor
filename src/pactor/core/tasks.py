@@ -19,6 +19,7 @@ from kombu.exceptions import KombuError
 from pactor.config.celery import app
 from pactor.config.events import ROUTES
 from pactor.core import consumers, outbox
+from pactor.core.observability import bind_log_context, entity_correlation
 from pactor.core.outbox import EventEnvelope, PublishError
 
 logger = logging.getLogger(__name__)
@@ -89,7 +90,9 @@ class SideEffect[T]:
 def _run_with_retries(
     task: ConsumerTask, name: str, message: Mapping[str, object], body: Callable[[], None]
 ) -> None:
-    with consumers.isolated_task(task.request.id):
+    payload = message.get("payload")
+    correlation = entity_correlation(payload) if isinstance(payload, Mapping) else {}
+    with consumers.isolated_task(task.request.id), bind_log_context(**correlation):
         try:
             body()
         except Exception as exc:

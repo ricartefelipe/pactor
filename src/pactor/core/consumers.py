@@ -17,7 +17,7 @@ from django.db import close_old_connections, connection, transaction
 from django.utils import timezone
 
 from pactor.core.models import ConsumedEvent, ConsumerFailure, ConsumerFailureStatus
-from pactor.core.observability import bind_log_context
+from pactor.core.observability import CONSUMER_FAILURES, bind_log_context
 from pactor.core.outbox import EventEnvelope
 from pactor.core.tenancy import tenant_context
 
@@ -86,6 +86,7 @@ def record_failure(
     consumer: str, message: Mapping[str, object], error: BaseException, *, final: bool
 ) -> None:
     envelope = EventEnvelope.from_message(message)
+    CONSUMER_FAILURES.labels(consumer).inc()
     status = ConsumerFailureStatus.FAILED if final else ConsumerFailureStatus.RETRYING
     with transaction.atomic():
         failure, _ = ConsumerFailure.objects.select_for_update().get_or_create(
