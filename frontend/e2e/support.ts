@@ -46,14 +46,44 @@ export function cnpj(seed: number): string {
   return `${base}${first}${second}`;
 }
 
+const TOTP_PERIOD_MS = 30_000;
+let lastTotpWindow = -1;
+
+/**
+ * Código de uma janela TOTP ainda não usada nesta execução: o servidor recusa
+ * reutilizar um código, e testes seguidos podem entrar na mesma janela.
+ */
+async function unusedTotp(page: Page): Promise<string> {
+  let window = Math.floor(Date.now() / TOTP_PERIOD_MS);
+  if (window <= lastTotpWindow) {
+    await page.waitForTimeout((lastTotpWindow + 1) * TOTP_PERIOD_MS - Date.now() + 500);
+    window = Math.floor(Date.now() / TOTP_PERIOD_MS);
+  }
+  lastTotpWindow = window;
+  return totp(window * TOTP_PERIOD_MS);
+}
+
+async function confirmSecondFactor(page: Page): Promise<void> {
+  const field = page.getByLabel("Código do aplicativo autenticador");
+  await field.fill(await unusedTotp(page));
+  await page.getByRole("button", { name: "Confirmar código" }).click();
+  // Outro processo pode ter usado o código desta janela: tenta uma vez na seguinte.
+  const accepted = page.getByRole("heading", { level: 1, name: "Painel" });
+  const rejected = page.getByText("Código incorreto.").first();
+  await expect(accepted.or(rejected)).toBeVisible();
+  if (await rejected.isVisible()) {
+    await field.fill(await unusedTotp(page));
+    await page.getByRole("button", { name: "Confirmar código" }).click();
+  }
+}
+
 export async function login(page: Page, email: string, { mfa = false } = {}): Promise<void> {
   await page.goto("/entrar");
   await page.getByLabel("E-mail").fill(email);
   await page.getByLabel("Senha").fill(DEMO_PASSWORD);
   await page.getByRole("button", { name: "Entrar" }).click();
   if (mfa) {
-    await page.getByLabel("Código do aplicativo autenticador").fill(totp());
-    await page.getByRole("button", { name: "Confirmar código" }).click();
+    await confirmSecondFactor(page);
   }
   await expect(page.getByRole("heading", { level: 1, name: "Painel" })).toBeVisible();
 }
@@ -88,4 +118,27 @@ export function isoDate(offsetDays: number): string {
   date.setDate(date.getDate() + offsetDays);
   const local = new Date(date.getTime() - date.getTimezoneOffset() * 60_000);
   return local.toISOString().slice(0, 10);
+}
+
+/** PDF mínimo e válido (uma página com texto ASCII), com tabela xref correta. */
+export function samplePdf(text: string): Buffer {
+  const content = `BT /F1 12 Tf 72 720 Td (${text.replace(/[()\\]/g, "")}) Tj ET`;
+  const objects = [
+    "<< /Type /Catalog /Pages 2 0 R >>",
+    "<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
+    "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 5 0 R >> >> /Contents 4 0 R >>",
+    `<< /Length ${String(content.length)} >>\nstream\n${content}\nendstream`,
+    "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>",
+  ];
+  let body = "%PDF-1.4\n";
+  const offsets: number[] = [];
+  objects.forEach((object, index) => {
+    offsets.push(body.length);
+    body += `${String(index + 1)} 0 obj\n${object}\nendobj\n`;
+  });
+  const xref = body.length;
+  body += `xref\n0 ${String(objects.length + 1)}\n0000000000 65535 f \n`;
+  for (const offset of offsets) body += `${String(offset).padStart(10, "0")} 00000 n \n`;
+  body += `trailer\n<< /Size ${String(objects.length + 1)} /Root 1 0 R >>\nstartxref\n${String(xref)}\n%%EOF\n`;
+  return Buffer.from(body, "latin1");
 }

@@ -231,7 +231,7 @@ class Invitation(TenantModel):
         max_length=10, choices=MembershipKind.choices, default=MembershipKind.INTERNAL
     )
     roles = ArrayField(models.CharField(max_length=20, choices=ROLE_CHOICES), default=list)
-    department_ids = ArrayField(models.UUIDField(), default=list)
+    department_ids = ArrayField(models.UUIDField(), default=list, blank=True)
     status = models.CharField(
         max_length=10, choices=InvitationStatus.choices, default=InvitationStatus.PENDING
     )

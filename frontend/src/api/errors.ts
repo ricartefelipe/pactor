@@ -76,10 +76,13 @@ export function toApiError(status: number, body: unknown): ApiError {
   if (isRecord(body) && isRecord(body.error)) {
     const { code, message, details, request_id: requestId } = body.error;
     const fieldErrors = code === "validation_failed" ? fieldErrorsFrom(details) : {};
+    // Erros que não pertencem a um campo (ex.: período longo demais) explicam a
+    // recusa melhor que a mensagem genérica de validação.
+    const general = fieldErrors.non_field_errors;
     return new ApiError(
       status,
       typeof code === "string" ? code : "error",
-      typeof message === "string" ? message : "Não foi possível concluir a operação.",
+      general ?? (typeof message === "string" ? message : "Não foi possível concluir a operação."),
       {
         fieldErrors,
         requestId: typeof requestId === "string" ? requestId : null,

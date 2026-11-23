@@ -44,6 +44,7 @@ dependência real; sem essa marca, o item tem código e testes locais.
 | Backup e restauração | `pg_dump` com `pactor_backup`, `pg_restore` em banco novo, conferência de contagens, donos, RLS e triggers; volume de mídia arquivado e restaurado | `docs/RUNBOOKS.md` (exercitado em 2026-11-23) |
 | Aplicação web | Todas as áreas em português; estados de carregamento, vazio, erro, validação e sucesso; troca de organização com descarte do cache; formulários que só aparecem com os dados de referência carregados | `frontend/src/**/*.test.tsx` (Vitest) |
 | Roteiro demonstrativo | 15 passos pela interface com web, workers, agendador, Mailpit e simulador reais; administração com TOTP; axe-core (WCAG 2 A/AA) | `frontend/e2e/demo.spec.ts` (exercitado localmente; também na CI com o Compose) |
+| Telas complementares | Estrutura, convites, workflow, integrações, operação, auditoria, edição de contrato, acesso, anexo liberado pelo ClamAV real, parcelas, confirmação, índice e reajuste único, modelos, recusa de solicitação, contrapartes, calendário e relatórios, com axe-core | `frontend/e2e/telas.spec.ts` (exercitado localmente; também na CI com o Compose) |
 | Contrato da API | Respostas documentadas comparadas com as reais; tipos do frontend gerados e conferidos na CI | `tests/integration/test_api_documentation.py`, `npm run check:api` |
 | Concorrência de revisões | Edição simultânea de rascunho e publicação simultânea | `tests/concurrency/test_revision_races.py` |
 
@@ -84,6 +85,3 @@ dependência real; sem essa marca, o item tem código e testes locais.
 - Cópia externa e retenção de backups e WAL: depende do provedor de armazenamento (`RUNBOOKS.md`).
 - Teste de perda de worker durante a execução (redelivery com `acks_late`) ainda não automatizado.
 - gitleaks e Trivy executados apenas na CI (não disponíveis no ambiente local).
-- Telas da aplicação web fora do roteiro demonstrativo (valores, anexos, acessos,
-  workflows, integrações, operação, estrutura) têm tipos verificados, lint e as
-  regras cobertas no backend, mas ainda não têm teste de interface próprio.
