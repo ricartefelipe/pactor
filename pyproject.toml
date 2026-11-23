@@ -20,6 +20,7 @@ dependencies = [
     "kombu==5.7.0",
     "prometheus-client==0.26.0",
     "psycopg[binary]==3.3.9",
+    "pyjwt[crypto]==2.15.1",
     "pypdf==7.1.1",
     "python-docx==1.2.0",
     "python-json-logger==4.2.0",
@@ -233,6 +234,10 @@ include = [
     "src/pactor/contracts/visibility.py",
     "src/pactor/contracts/diff.py",
     "src/pactor/counterparties/services.py",
+    "src/pactor/signatures/services.py",
+    "src/pactor/signatures/simulator.py",
+    "src/pactor/signatures/docusign.py",
+    "src/pactor/signatures/storage.py",
 ]
 exclude = []
 min_lines = 95.0

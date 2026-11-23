@@ -35,7 +35,7 @@ def celery_worker_process(transactional_db: None) -> Iterator[subprocess.Popen[b
             "pactor",
             "worker",
             "--pool=solo",
-            "--queues=default,notifications",
+            "--queues=default,notifications,integrations",
             "--loglevel=WARNING",
             "--without-gossip",
             "--without-mingle",
