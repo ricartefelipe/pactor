@@ -46,14 +46,44 @@ export function cnpj(seed: number): string {
   return `${base}${first}${second}`;
 }
 
+const TOTP_PERIOD_MS = 30_000;
+let lastTotpWindow = -1;
+
+/**
+ * Código de uma janela TOTP ainda não usada nesta execução: o servidor recusa
+ * reutilizar um código, e testes seguidos podem entrar na mesma janela.
+ */
+async function unusedTotp(page: Page): Promise<string> {
+  let window = Math.floor(Date.now() / TOTP_PERIOD_MS);
+  if (window <= lastTotpWindow) {
+    await page.waitForTimeout((lastTotpWindow + 1) * TOTP_PERIOD_MS - Date.now() + 500);
+    window = Math.floor(Date.now() / TOTP_PERIOD_MS);
+  }
+  lastTotpWindow = window;
+  return totp(window * TOTP_PERIOD_MS);
+}
+
+async function confirmSecondFactor(page: Page): Promise<void> {
+  const field = page.getByLabel("Código do aplicativo autenticador");
+  await field.fill(await unusedTotp(page));
+  await page.getByRole("button", { name: "Confirmar código" }).click();
+  // Outro processo pode ter usado o código desta janela: tenta uma vez na seguinte.
+  const accepted = page.getByRole("heading", { level: 1, name: "Painel" });
+  const rejected = page.getByText("Código incorreto.").first();
+  await expect(accepted.or(rejected)).toBeVisible();
+  if (await rejected.isVisible()) {
+    await field.fill(await unusedTotp(page));
+    await page.getByRole("button", { name: "Confirmar código" }).click();
+  }
+}
+
 export async function login(page: Page, email: string, { mfa = false } = {}): Promise<void> {
   await page.goto("/entrar");
   await page.getByLabel("E-mail").fill(email);
   await page.getByLabel("Senha").fill(DEMO_PASSWORD);
   await page.getByRole("button", { name: "Entrar" }).click();
   if (mfa) {
-    await page.getByLabel("Código do aplicativo autenticador").fill(totp());
-    await page.getByRole("button", { name: "Confirmar código" }).click();
+    await confirmSecondFactor(page);
   }
   await expect(page.getByRole("heading", { level: 1, name: "Painel" })).toBeVisible();
 }
