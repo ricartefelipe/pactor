@@ -60,6 +60,8 @@ INSTALLED_APPS = [
     "pactor.drafting",
     "pactor.intake",
     "pactor.files",
+    "pactor.deadlines",
+    "pactor.obligations",
 ]
 
 MIDDLEWARE = [
@@ -299,6 +301,9 @@ SPECTACULAR_SETTINGS = {
         "GrantSourceEnum": "pactor.contracts.models.GrantSource",
         "RoundStatusEnum": "pactor.approvals.models.RoundStatus",
         "DraftingStatusEnum": "pactor.contracts.models.DRAFTING_CHOICES",
+        "DeadlineKindEnum": "pactor.deadlines.models.DeadlineKind",
+        "AlertKindEnum": "pactor.deadlines.models.AlertKind",
+        "DocumentKindEnum": "pactor.signatures.models.DocumentKind",
     },
 }
 
@@ -329,6 +334,10 @@ CELERY_BEAT_SCHEDULE = {
         "task": "pactor.signatures.process_pending_events",
         "schedule": 60.0,
     },
+    # Idempotentes: rodar de hora em hora (ciclo) e a cada minuto (alertas)
+    # recupera execuções perdidas sem duplicar efeitos.
+    "deadlines-daily-cycle": {"task": "pactor.deadlines.daily_cycle", "schedule": 3600.0},
+    "deadlines-dispatch-alerts": {"task": "pactor.deadlines.dispatch_alerts", "schedule": 60.0},
 }
 
 # ---------------------------------------------------------------------------
