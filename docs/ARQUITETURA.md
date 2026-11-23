@@ -368,3 +368,18 @@ flowchart LR
 - **Agendamento** (`CELERY_BEAT_SCHEDULE`): relay da outbox (10 s), reconciliação de assinaturas
   (5 min), eventos pendentes (1 min), ciclo diário de contratos (1 h, idempotente) e alertas (1 min).
   Um teste garante que toda task agendada e todo consumidor roteado estão registrados.
+
+## Valores e compromissos
+
+- **Conceitos distintos**: valor contratado (condição do contrato, com aditivos por data), projeção
+  (parcelas e marcos não cancelados), obrigação de pagamento (previstas vencidas não confirmadas) e
+  confirmação (registro informado por usuário). Não há integração bancária nem conciliação.
+- **Dinheiro**: `Decimal` com moeda explícita (BRL), `NUMERIC(14,2)`, sem negativos, até
+  999.999.999.999,99. A API recusa números JSON (que chegam como `float`) e exige texto decimal.
+  Arredondamento meio-par aplicado uma vez por operação.
+- **Parcelas**: rateio exato (a soma é sempre o total; centavos restantes nas primeiras parcelas).
+- **Índices**: valores percentuais com período (primeiro dia do mês), fonte e nota de origem
+  registrados pela organização; séries podem ser marcadas como demonstrativas. Nenhum índice oficial
+  é embutido ou inventado.
+- **Reajustes** alteram apenas parcelas previstas a partir da data de efeito e registram antes/depois
+  de cada parcela. Confirmações, valores de índice e reajustes são somente-inserção no banco.
