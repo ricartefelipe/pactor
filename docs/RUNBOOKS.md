@@ -108,15 +108,29 @@ docker run --rm -v pactor_media_restore:/media -v "$PWD/backups:/backup:ro" \
 Depois de restaurar, aponte o serviço para o volume novo ou copie o conteúdo
 para `pactor_media` com os processos parados.
 
+### Conferência de integridade (após restaurar banco e documentos)
+
+```sh
+docker compose run --rm web python manage.py verify_documents
+```
+
+O comando relê cada arquivo, prévia e documento de assinatura, compara SHA-256 e
+tamanho com o banco e termina com erro quando há divergência. Cada linha informa
+o problema (ausente, tamanho divergente ou hash divergente), o registro, a
+organização e o caminho. Não altera nada; `--organizacao <uuid>` restringe a busca.
+Originais e documentos de assinatura divergentes nunca são servidos, porque o
+download confere o hash. Prévias não têm hash: para elas, só a existência é verificada.
+
+**Exercitado em 23/11/2026** no banco de desenvolvimento (9 documentos, sem
+divergências). Os testes de integração cobrem arquivo alterado, truncado ou
+ausente, prévia ausente e documento de assinatura apagado.
+
 ## 4. Procedimentos escritos, ainda não exercitados
 
 - **Recuperação a um ponto no tempo** (arquivamento de WAL e `restore_command`):
   exige armazenamento externo de WAL, que não existe no Compose local.
 - **Cópia externa e retenção dos backups** (criptografia em repouso, retenção
   por 30 dias, teste mensal de restauração): depende do provedor de armazenamento.
-- **Conferência de integridade dos documentos após a restauração**: recalcular
-  o SHA-256 de cada arquivo e comparar com `files_storedfile.sha256`.
-  Ainda não há comando para isso.
 
 ## 5. Outbox, consumidores e reprocessamento
 

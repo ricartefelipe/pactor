@@ -103,9 +103,8 @@ da imagem (Trivy) e do roteiro ponta a ponta com a pilha do Compose.
 - **Integração com o Docusign**: o adaptador está implementado e coberto por testes
   com transporte simulado, mas nunca rodou contra o ambiente real, por falta de
   credenciais. O teste existe (`make test-external`) e falha sem elas.
-- **Recuperação a um ponto no tempo** (WAL) e conferência de hashes após uma
-  restauração: existem só como procedimentos escritos; backup e restauração
-  completos foram exercitados.
+- **Recuperação a um ponto no tempo** (WAL): existe só como procedimento escrito;
+  backup, restauração e conferência de integridade dos documentos foram exercitados.
 - **Ativação do TOTP**: a tela mostra a chave e o endereço `otpauth`, sem QR code.
 - **Idioma**: somente português do Brasil.
 - **Ferramentas só na CI**: gitleaks e Trivy rodam apenas na CI, não no ambiente local.
