@@ -46,14 +46,18 @@ dependência real; sem essa marca, o item tem código e testes locais.
 | Contrato da API | Respostas documentadas comparadas com as reais; tipos do frontend gerados e conferidos na CI | `tests/integration/test_api_documentation.py`, `npm run check:api` |
 | Concorrência de revisões | Edição simultânea de rascunho e publicação simultânea | `tests/concurrency/test_revision_races.py` |
 
-## Em andamento
+## Versões
 
-- Release 0.1.0.
+| Versão | Data | Conteúdo |
+| --- | --- | --- |
+| 0.1.0 | 2026-11-23 | Primeira versão: todas as áreas acima, aplicação web e roteiro demonstrativo no navegador |
 
 ## Verificações executadas
 
 | Data | Comando | Resultado |
 | --- | --- | --- |
+| 2026-11-23 | Revisão de código da versão 0.1.0 (`/code-review` sobre `release/0.1.0`) | 10 achados (9 importantes: aprovação com dados alterados, término de aditivos, renovação mensal, integrações criando solicitações, reajuste duplicado ou acima do máximo, corrida na numeração de parcelas, filtros de término; 1 menor: vencimentos após 9999); todos corrigidos com teste de regressão que falha sem a correção |
+| 2026-11-23 | `make test` (após a revisão) | 583 testes aprovados; gate core 98,53% / 92,83%; gate crítico 98,04% / 91,57% |
 | 2026-11-23 | `make test` (aplicação web) | 569 testes aprovados; gate core 98,52% / 92,81%; gate crítico 98,06% / 91,59% |
 | 2026-11-23 | `make frontend-check` | Tipos da API atualizados; ESLint, Prettier e TypeScript sem apontamentos; 30 testes Vitest; `npm audit` sem vulnerabilidades; build ok |
 | 2026-11-23 | `npx playwright test` (pilha local: gunicorn, worker, beat, Mailpit, simulador) | 2 testes aprovados (roteiro de 15 passos e administração com TOTP; axe-core sem violações graves) em 2,6 min |

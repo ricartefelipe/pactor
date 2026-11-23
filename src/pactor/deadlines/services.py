@@ -417,6 +417,26 @@ def register_non_renewal(
     return policy
 
 
+def _renewal_base(contract: Contract, previous: date, term_months: int) -> tuple[date, int]:
+    """Término-base da série de renovações e quantos termos somar a ele.
+
+    A série continua enquanto o término atual for o resultado da última
+    renovação com o mesmo prazo; qualquer outra mudança (aditivo, prazo novo)
+    inicia uma série a partir do término atual.
+    """
+    last = RenewalRecord.objects.filter(contract=contract).order_by("-sequence").first()
+    if last is not None and last.new_end == previous:
+        rule = last.rule if isinstance(last.rule, dict) else {}
+        base, terms = rule.get("base_end"), rule.get("terms_from_base")
+        if (
+            isinstance(base, str)
+            and isinstance(terms, int)
+            and rule.get("term_months") == term_months
+        ):
+            return date.fromisoformat(base), terms + 1
+    return previous, 1
+
+
 def process_automatic_renewals(organization_id: uuid.UUID, *, today: date) -> int:
     """Renova contratos com renovação automática autorizada cujo término chegou.
 
@@ -446,7 +466,10 @@ def process_automatic_renewals(organization_id: uuid.UUID, *, today: date) -> in
                 and (policy.max_renewals is None or done < policy.max_renewals)
             ):
                 previous = contract.effective_end
-                new_end = add_months(previous, policy.term_months)
+                base, terms = _renewal_base(contract, previous, policy.term_months)
+                # Sempre a partir da base: somar meses ao término já ajustado ao fim
+                # do mês encurtaria a vigência a cada ciclo (31/01 → 28/02 → 28/03).
+                new_end = add_months(base, policy.term_months * terms)
                 done += 1
                 RenewalRecord.objects.create(
                     organization_id=organization_id,
@@ -455,6 +478,8 @@ def process_automatic_renewals(organization_id: uuid.UUID, *, today: date) -> in
                     previous_end=previous,
                     new_end=new_end,
                     rule={
+                        "base_end": base.isoformat(),
+                        "terms_from_base": terms,
                         "mode": policy.mode,
                         "term_months": policy.term_months,
                         "authorized_by": str(policy.authorized_by_id),
@@ -483,9 +508,18 @@ def process_automatic_renewals(organization_id: uuid.UUID, *, today: date) -> in
 
 
 def daily_cycle(organization: Organization, *, today: date | None = None) -> dict[str, int]:
-    """Ordem: renovações automáticas, depois transições de vigência."""
+    """Ordem: términos de aditivos em vigor, renovações automáticas e transições de vigência.
+
+    Os aditivos vêm primeiro: uma prorrogação que entra em vigor no último dia
+    impede tanto a renovação automática quanto o encerramento.
+    """
     local = today or lifecycle.local_today(organization)
+    amended = lifecycle.apply_due_amendment_ends(organization.id, today=local)
+    with tenant_context(organization.id):
+        for contract in amended:
+            recompute_for_contract(contract)
     return {
+        "amendments": len(amended),
         "renewals": process_automatic_renewals(organization.id, today=local),
         "lifecycle": lifecycle.advance_due(organization.id, today=local),
     }

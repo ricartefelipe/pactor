@@ -12,11 +12,11 @@ from pactor.obligations import services as obligations
 
 @shared_task(name="pactor.deadlines.daily_cycle", ignore_result=True)
 def daily_cycle() -> dict[str, int]:
-    """Renovações automáticas e transições de vigência, organização por organização.
+    """Aditivos em vigor, renovações automáticas e transições de vigência, por organização.
 
     Idempotente: rodar de hora em hora recupera execuções perdidas sem duplicar efeitos.
     """
-    totals = {"renewals": 0, "lifecycle": 0, "occurrences": 0}
+    totals = {"amendments": 0, "renewals": 0, "lifecycle": 0, "occurrences": 0}
     with consumers.isolated_task(None):
         for organization in Organization.objects.filter(status=OrganizationStatus.ACTIVE).order_by(
             "id"

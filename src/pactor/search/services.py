@@ -14,6 +14,7 @@ from datetime import date
 
 from django.contrib.postgres.search import SearchHeadline, SearchQuery, SearchRank
 from django.db.models import Count, F, Q, QuerySet
+from django.db.models.functions import Coalesce
 
 from pactor.access.policies import Principal
 from pactor.contracts.models import Contract
@@ -62,14 +63,14 @@ def _filtered(principal: Principal, filters: SearchFilters) -> QuerySet[Contract
     queryset = queryset.filter(**{k: v for k, v in exact.items() if v is not None})
     if filters.tag:
         queryset = queryset.filter(tags__contains=[filters.tag.lower()])
-    if filters.ends_after:
-        queryset = queryset.filter(
-            Q(effective_end__gte=filters.ends_after) | Q(planned_end__gte=filters.ends_after)
-        )
-    if filters.ends_before:
-        queryset = queryset.filter(
-            Q(effective_end__lte=filters.ends_before) | Q(planned_end__lte=filters.ends_before)
-        )
+    if filters.ends_after or filters.ends_before:
+        # Término vigente: o efetivo (após assinatura, renovação, aditivo ou
+        # rescisão) e, antes dele existir, o previsto — como nos relatórios.
+        queryset = queryset.annotate(term_end_in_force=Coalesce("effective_end", "planned_end"))
+        if filters.ends_after:
+            queryset = queryset.filter(term_end_in_force__gte=filters.ends_after)
+        if filters.ends_before:
+            queryset = queryset.filter(term_end_in_force__lte=filters.ends_before)
     return queryset
 
 

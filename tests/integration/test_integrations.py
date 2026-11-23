@@ -168,3 +168,53 @@ def test_token_is_accepted_only_in_authorization_header() -> None:
     token = _token(issued)
     assert Client().get(f"/api/v1/contracts?access_token={token}").status_code == 401
     assert Client(HTTP_AUTHORIZATION=f"Token {token}").get("/api/v1/contracts").status_code == 401
+
+
+def test_integration_creates_requests_as_its_service_user() -> None:
+    org, owner = factories.organization()
+    manager = factories.member(org, [Role.CONTRACT_MANAGER])
+    counterparty = factories.counterparty(org)
+    issued = _issue(org, owner, roles=["requester"], scopes=["requests.create"])
+    api = _api(_token(issued))
+    created = api.post(
+        "/api/v1/requests",
+        {
+            "title": "Pedido vindo do ERP (fictício)",
+            "contract_type": "services",
+            "objective": "Contratar suporte.",
+            "priority": "normal",
+            "counterparty_id": str(counterparty.id),
+        },
+        content_type=JSON,
+    )
+    assert created.status_code == 201, created.json()
+    body = created.json()
+    assert body["requester_name"] == "ERP fictício (integração)"
+    with tenant_context(org.id):
+        client = IntegrationClient.objects.select_related("service_user").get(id=str(issued["id"]))
+    service_user = client.service_user
+    assert body["requester_id"] == str(service_user.id)
+    assert body["events"][0]["actor_id"] == str(service_user.id)
+    assert not service_user.is_active
+    assert not service_user.has_usable_password()
+    assert [r["id"] for r in api.get("/api/v1/requests").json()["results"]] == [body["id"]]
+    assert not Client().login(email=service_user.email, password="")
+
+    staff = factories.client_for(manager, org)
+    assert (
+        staff.post(f"/api/v1/requests/{body['id']}/review", {}, content_type=JSON).status_code
+        == 200
+    )
+    converted = staff.post(
+        f"/api/v1/requests/{body['id']}/convert",
+        {
+            "owner_id": str(manager.id),
+            "organization_role": "contractor",
+            "counterparty_role": "contracted",
+        },
+        content_type=JSON,
+    )
+    assert converted.status_code == 201, converted.json()
+    assert converted.json()["requester_id"] is None
+    directory = staff.get("/api/v1/members/directory").json()
+    assert str(service_user.id) not in {entry["user_id"] for entry in directory}

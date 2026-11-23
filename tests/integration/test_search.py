@@ -5,6 +5,7 @@ from __future__ import annotations
 import csv
 import io
 import uuid
+from datetime import date
 
 import pytest
 from django.utils import timezone
@@ -218,3 +219,27 @@ def test_export_neutralizes_spreadsheet_formulas() -> None:
         factories.client_for(manager, org).get("/api/v1/reports/contracts.csv").content.decode()
     )
     assert "'=HYPERLINK" in content
+
+
+def test_end_filters_use_the_end_in_force() -> None:
+    org, _ = factories.organization()
+    manager = factories.member(org, [Role.CONTRACT_MANAGER])
+    renewed = factories.contract(org, manager)
+    terminated = factories.contract(org, manager)
+    planned_only = factories.contract(org, manager)
+    with tenant_context(org.id):
+        Contract.objects.filter(id=renewed.id).update(
+            planned_end=date(2025, 1, 31), effective_end=date(2027, 1, 31)
+        )
+        Contract.objects.filter(id=terminated.id).update(
+            planned_end=date(2026, 1, 1), effective_end=date(2024, 3, 1)
+        )
+        Contract.objects.filter(id=planned_only.id).update(planned_end=date(2025, 6, 30))
+    client = factories.client_for(manager, org)
+
+    def ids(query: str) -> set[str]:
+        return {r["id"] for r in client.get(f"/api/v1/search?{query}").json()["results"]}
+
+    assert ids("ends_before=2025-06-30") == {str(terminated.id), str(planned_only.id)}
+    assert ids("ends_after=2025-01-01") == {str(renewed.id), str(planned_only.id)}
+    assert ids("ends_after=2025-01-01&ends_before=2025-12-31") == {str(planned_only.id)}

@@ -24,7 +24,7 @@ from pactor.core.errors import (
 )
 from pactor.core.tenancy import require_tenant
 from pactor.counterparties.models import Counterparty
-from pactor.identity.models import Department
+from pactor.identity.models import Department, Membership, MembershipKind, MembershipStatus
 from pactor.intake.domain import RequestState, can_transition
 from pactor.intake.models import ContractRequest, Priority, RequestEvent, RequestSequence
 from pactor.plans import services as plans
@@ -209,6 +209,14 @@ def convert(
         raise DomainValidationError("Informe a contraparte antes de converter.")
     if not can_transition(RequestState(request.status), RequestState.CONVERTED):
         raise InvalidTransitionError("Somente solicitações em análise são convertidas.")
+    # O solicitante só vira solicitante do contrato se ainda for membro interno
+    # ativo (integrações e quem saiu da organização ficam registrados na solicitação).
+    requester_is_member = Membership.objects.filter(
+        organization_id=request.organization_id,
+        user_id=request.requester_id,
+        status=MembershipStatus.ACTIVE,
+        kind=MembershipKind.INTERNAL,
+    ).exists()
     contract = contracts.create_contract(
         principal,
         contracts.ContractInput(
@@ -219,7 +227,7 @@ def convert(
             counterparty_role=counterparty_role,
             owner_id=owner_id,
             department_id=request.department_id,
-            requester_id=request.requester_id,
+            requester_id=request.requester_id if requester_is_member else None,
             confidentiality=confidentiality,
             total_value=request.estimated_value,
             planned_start=request.desired_start,

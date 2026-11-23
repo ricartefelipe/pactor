@@ -59,10 +59,12 @@ def _amount(raw: object, field: str) -> Decimal:
 
 
 def _require_finance(principal: Principal, contract_id: uuid.UUID, *, write: bool) -> None:
+    """Autoriza e, nas escritas, trava o contrato: serializa a numeração das
+    parcelas e os reajustes concorrentes do mesmo contrato."""
     authorize(principal, Permission.FINANCE_WRITE if write else Permission.FINANCE_READ)
     if write:
         plans.ensure_module(Module.FINANCE)
-    get_visible_contract(principal, contract_id)
+    get_visible_contract(principal, contract_id, for_update=write)
 
 
 def schedule_installments(
@@ -80,12 +82,18 @@ def schedule_installments(
     if not 1 <= parts <= MAX_INSTALLMENTS:
         raise DomainValidationError(f"Quantidade de parcelas entre 1 e {MAX_INSTALLMENTS}.")
     amounts = allocate(_amount(total, "total"), parts)
-    due_dates = [
-        d
-        for _, d in occurrences(
-            first_due, Recurrence(frequency, count=parts), horizon=date(9999, 12, 31)
-        )
-    ]
+    try:
+        due_dates = [
+            d
+            for _, d in occurrences(
+                first_due, Recurrence(frequency, count=parts), horizon=date(9999, 12, 31)
+            )
+        ]
+    except (ValueError, OverflowError) as exc:
+        # Vencimentos depois do ano 9999 não são representáveis.
+        raise DomainValidationError(
+            "As parcelas ultrapassariam a última data representável."
+        ) from exc
     if len(due_dates) != parts:
         raise DomainValidationError("Frequência incompatível com a quantidade de parcelas.")
     start = (
@@ -161,14 +169,18 @@ def confirm(
     reference: str,
 ) -> PaymentConfirmation:
     """Registra a confirmação informada. Valor e data ficam imutáveis."""
-    installment = (
-        Installment.objects.select_for_update()
-        .filter(organization_id=require_tenant(), id=installment_id)
+    contract_id = (
+        Installment.objects.filter(organization_id=require_tenant(), id=installment_id)
+        .values_list("contract_id", flat=True)
         .first()
     )
-    if installment is None:
+    if contract_id is None:
         raise NotFoundError("Parcela não encontrada.")
-    _require_finance(principal, installment.contract_id, write=True)
+    # Mesma ordem de travas dos reajustes (contrato, depois parcela): evita deadlock.
+    _require_finance(principal, contract_id, write=True)
+    installment = Installment.objects.select_for_update().get(
+        organization_id=require_tenant(), id=installment_id
+    )
     if installment.status != InstallmentStatus.PLANNED:
         raise InvalidTransitionError("Somente parcelas previstas podem ser confirmadas.")
     if not reference.strip():
@@ -256,6 +268,10 @@ def apply_adjustment(
     ).first()
     if index_value is None:
         raise NotFoundError("Valor de índice não encontrado.")
+    if AdjustmentRecord.objects.filter(
+        organization_id=require_tenant(), contract_id=contract_id, index_value=index_value
+    ).exists():
+        raise ConflictError("Este valor de índice já reajustou o contrato.")
     targets = list(
         Installment.objects.select_for_update()
         .filter(
@@ -271,7 +287,13 @@ def apply_adjustment(
     affected: list[dict[str, str]] = []
     for installment in targets:
         before = installment.amount
-        installment.amount = adjust(before, index_value.rate_percent)
+        try:
+            installment.amount = adjust(before, index_value.rate_percent)
+        except MoneyError as exc:
+            raise DomainValidationError(
+                f"Parcela {installment.sequence}: {exc}.",
+                details={"installment": installment.sequence},
+            ) from exc
         installment.version += 1
         installment.save(update_fields=["amount", "version"])
         affected.append(

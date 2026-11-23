@@ -215,6 +215,35 @@ def test_approval_is_invalidated_when_new_revision_is_published_after_it() -> No
         services.require_approved_for_signature(contract)
 
 
+def test_metadata_changed_after_publication_requires_new_revision_before_submission() -> None:
+    """A regra do workflow e o que é aprovado vêm dos dados atuais, não dos da publicação."""
+    s = _setup(value="1000.00")
+    round_ = _submit(s)
+    assert round_.rule_snapshot["name"] == "Padrão"
+    _vote(s, round_, s.legal_a, "gestao")
+    assert _contract(s).drafting_status == "approved"
+    with tenant_context(s.org.id):
+        principal = factories.principal_for_owner(s.org, s.manager)
+        contracts.update_metadata(
+            principal,
+            s.contract.id,
+            expected_version=_contract(s).version,
+            changes={"total_value": Decimal("10000000.00")},
+        )
+    assert _contract(s).drafting_status == "draft"
+    with pytest.raises(ConflictError, match="Publique uma nova revisão"):
+        _submit(s)
+    with tenant_context(s.org.id):
+        newer = contracts.publish_revision(
+            factories.principal_for_owner(s.org, s.manager), s.contract.id, expected_draft_version=1
+        )
+        high = services.submit_for_approval(
+            _principal(s, s.manager), s.contract.id, expected_fingerprint=newer.fingerprint
+        )
+    assert high.rule_snapshot["name"] == "Alto valor"
+    assert high.revision_id == newer.id
+
+
 def test_self_approval_is_prohibited_for_author() -> None:
     s = _setup(value="100.00")
     round_ = _submit(s)

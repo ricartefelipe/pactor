@@ -5,8 +5,26 @@ Formato baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e
 
 ## [Não lançado]
 
+## [0.1.0] - 2026-11-23
+
+Primeira versão: plataforma completa de gestão do ciclo de vida de contratos,
+com API, aplicação web, workers, agendador e roteiro demonstrativo comprovado
+no navegador.
+
 ### Corrigido
 
+- Revisão reenviada para aprovação depois de mudanças nos dados ou anexos do contrato: a regra
+  do workflow era escolhida pelos dados antigos. Agora é preciso publicar uma nova revisão.
+- Aditivo assinado que prorrogava o término não chegava ao encerramento, aos prazos nem às
+  renovações.
+- Renovações mensais encurtavam a vigência a cada ciclo (31/01 → 28/02 → 28/03).
+- Integrações com o escopo `requests.create` não conseguiam criar solicitações; cada
+  integração tem agora um usuário de serviço como autor.
+- Solicitação de quem saiu da organização não podia ser convertida em contrato.
+- Reajuste repetido com o mesmo índice, valores fora do limite (ex.: `1e30`), reajustes acima
+  do máximo, parcelas simultâneas no mesmo contrato e vencimentos além do ano 9999 geravam
+  efeito duplicado ou erro 500.
+- Filtros de término da pesquisa combinavam término previsto e efetivo.
 - Agendamento periódico do ciclo de vigência ausente; agora coberto por teste de guarda.
 - Backup do banco impossível com RLS forçada; papel `pactor_backup` dedicado ao `pg_dump`.
 - Esquema OpenAPI divergente das respostas reais: objetos sem descrição, listas
@@ -90,3 +108,6 @@ Formato baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e
 - Mutation testing do núcleo de regras (manual e semanal).
 - Autenticação por e-mail com confirmação e MFA (django-allauth headless).
 - Pipeline de CI com lockfile, Ruff, mypy, pip-audit, Bandit, gitleaks, testes, gates de cobertura e análise da imagem.
+
+[Não lançado]: https://github.com/ricartefelipe/pactor/compare/v0.1.0...develop
+[0.1.0]: https://github.com/ricartefelipe/pactor/releases/tag/v0.1.0

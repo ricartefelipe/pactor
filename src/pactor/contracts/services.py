@@ -32,7 +32,6 @@ from pactor.contracts.domain import (
     sha256_text,
 )
 from pactor.contracts.models import (
-    AmendmentChange,
     Comment,
     Contract,
     ContractDraft,
@@ -43,6 +42,7 @@ from pactor.contracts.models import (
     RevisionSource,
 )
 from pactor.contracts.selectors import get_revision, get_visible_contract, require_editable
+from pactor.contracts.snapshots import metadata_snapshot
 from pactor.core import outbox
 from pactor.core.errors import (
     ConflictError,
@@ -356,33 +356,6 @@ def save_draft(
             details={"current_version": draft.version},
         )
     return draft
-
-
-def metadata_snapshot(contract: Contract) -> dict[str, Canonical]:
-    """Metadados relevantes cobertos pela aprovação."""
-    return {
-        "title": contract.title,
-        "contract_type": contract.contract_type,
-        "counterparty_id": str(contract.counterparty_id),
-        "counterparty_document": contract.counterparty.document,
-        "organization_role": contract.organization_role,
-        "counterparty_role": contract.counterparty_role,
-        "department_id": str(contract.department_id) if contract.department_id else None,
-        "confidentiality": contract.confidentiality,
-        "classification": contract.classification,
-        "total_value": str(contract.total_value) if contract.total_value is not None else None,
-        "currency": contract.currency,
-        "planned_start": contract.planned_start.isoformat() if contract.planned_start else None,
-        "planned_end": contract.planned_end.isoformat() if contract.planned_end else None,
-        "parent_id": str(contract.parent_id) if contract.parent_id else None,
-        # Alterações de condição de um aditivo fazem parte do que é aprovado e assinado.
-        "amendment_changes": [
-            {"field": c.field, "value": c.value, "effective_from": c.effective_from.isoformat()}
-            for c in AmendmentChange.objects.filter(
-                organization_id=contract.organization_id, amendment_id=contract.id
-            ).order_by("created_at", "id")
-        ],
-    }
 
 
 def publish_revision(

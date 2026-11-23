@@ -24,7 +24,21 @@ amounts = st.decimals(
 
 
 @pytest.mark.parametrize(
-    "raw", [1.5, True, None, "NaN", "Infinity", "-1", "1.001", "1e20", "abc", Decimal("sNaN")]
+    "raw",
+    [
+        1.5,
+        True,
+        None,
+        "NaN",
+        "Infinity",
+        "-1",
+        "1.001",
+        "1e20",
+        "1e30",  # excede a precisão do contexto decimal ao quantizar
+        "-1e40",
+        "abc",
+        Decimal("sNaN"),
+    ],
 )
 def test_invalid_amounts_are_rejected(raw: object) -> None:
     with pytest.raises(MoneyError):
@@ -73,7 +87,9 @@ def test_adjustment_rounds_once_half_even(amount: str, rate: str, expected: str)
     assert adjust(Decimal(amount), parse_rate(rate)) == Decimal(expected)
 
 
-@pytest.mark.parametrize("raw", [0.1, "x", "NaN", "1.0000001", "1000", "-1000", False])
+@pytest.mark.parametrize(
+    "raw", [0.1, "x", "NaN", "1.0000001", "1000", "-1000", "1e30", "-1e40", False]
+)
 def test_invalid_rates(raw: object) -> None:
     with pytest.raises(MoneyError):
         parse_rate(raw)
@@ -84,6 +100,16 @@ def test_invalid_rates(raw: object) -> None:
     st.decimals(min_value=-99, max_value=99, places=6, allow_nan=False, allow_infinity=False),
 )
 def test_property_adjustment_result_has_two_places(amount: Decimal, rate: Decimal) -> None:
+    exact = amount * (Decimal(1) + rate / Decimal(100))
+    if exact.quantize(Decimal("0.01")) > MAX_AMOUNT:
+        with pytest.raises(MoneyError, match="máximo"):
+            adjust(amount, rate)
+        return
     result = adjust(amount, rate)
     assert result == result.quantize(Decimal("0.01"))
-    assert result >= 0
+    assert 0 <= result <= MAX_AMOUNT
+
+
+def test_adjustment_beyond_the_maximum_is_rejected() -> None:
+    with pytest.raises(MoneyError, match="máximo"):
+        adjust(Decimal("200000000000.00"), parse_rate("500"))

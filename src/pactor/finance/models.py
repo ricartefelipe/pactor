@@ -135,5 +135,14 @@ class AdjustmentRecord(TenantModel):
     affected = models.JSONField(help_text="Lista de {installment_id, before, after}.")
     applied_by = models.ForeignKey("identity.User", on_delete=models.PROTECT, related_name="+")
 
+    class Meta(TenantModel.Meta):
+        constraints: ClassVar[list[models.BaseConstraint]] = [
+            *TenantModel.Meta.constraints,
+            # O mesmo valor de índice reajusta um contrato uma única vez.
+            models.UniqueConstraint(
+                fields=["contract", "index_value"], name="adjustment_once_per_index_value"
+            ),
+        ]
+
     def __str__(self) -> str:
         return f"reajuste:{self.contract_id}:{self.applies_from}"

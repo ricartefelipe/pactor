@@ -13,11 +13,13 @@ from pactor.contracts.lifecycle import (
     ConditionChange,
     ConditionField,
     Conditions,
+    EndReplacement,
     LifecycleAction,
     LifecycleError,
     LifecycleStatus,
     conditions_at,
     due_transition,
+    end_in_force,
     is_in_force,
     next_status,
     status_after_signature,
@@ -139,3 +141,19 @@ def test_property_original_is_preserved_and_future_changes_ignored(
     )
     expected = effective[-1].value if effective else ORIGINAL.total_value
     assert result.total_value == expected
+
+
+def test_end_in_force_reconstitutes_the_end_valid_on_each_date() -> None:
+    # Término original 31/12/2026; renovação a partir de 01/01/2027 (→ 31/12/2027);
+    # aditivo em vigor a partir de 01/06/2027 (→ 31/12/2028). Atual: 31/12/2028.
+    replacements = [
+        EndReplacement(effective_from=date(2027, 1, 1), replaced=date(2026, 12, 31)),
+        EndReplacement(effective_from=date(2027, 6, 1), replaced=date(2027, 12, 31)),
+    ]
+    current = date(2028, 12, 31)
+    assert end_in_force(current, replacements, date(2026, 6, 1)) == date(2026, 12, 31)
+    assert end_in_force(current, replacements, date(2027, 1, 1)) == date(2027, 12, 31)
+    assert end_in_force(current, replacements, date(2027, 5, 31)) == date(2027, 12, 31)
+    assert end_in_force(current, replacements, date(2027, 6, 1)) == current
+    assert end_in_force(current, [], date(2000, 1, 1)) == current
+    assert end_in_force(None, replacements[:1], date(2026, 1, 1)) == date(2026, 12, 31)

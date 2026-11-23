@@ -159,6 +159,67 @@ def test_index_and_adjustment_rules() -> None:
     assert no_targets.status_code == 409
 
 
+def test_index_value_adjusts_a_contract_once_and_never_overflows() -> None:
+    org, _, finance, contract = _setup()
+    client = factories.client_for(finance, org)
+    base = f"/api/v1/contracts/{contract.id}/finance"
+    due = (timezone.localdate() + timedelta(days=60)).isoformat()
+    assert (
+        client.post(
+            f"{base}/milestones",
+            {"description": "Marco", "due_date": due, "amount": "200000000000.00"},
+            content_type=JSON,
+        ).status_code
+        == 201
+    )
+    index = {
+        "series_name": "Índice Y (fictício)",
+        "index_source": "Fonte fictícia",
+        "source_note": "Nota",
+        "is_demonstrative": True,
+    }
+    small = client.post(
+        "/api/v1/indexes", {**index, "period": "2027-01-01", "rate_percent": "1"}, content_type=JSON
+    ).json()
+    huge = client.post(
+        "/api/v1/indexes",
+        {**index, "period": "2027-02-01", "rate_percent": "500"},
+        content_type=JSON,
+    ).json()
+    body = {"index_value_id": small["id"], "applies_from": due}
+    assert client.post(f"{base}/adjustments", body, content_type=JSON).status_code == 201
+    repeated = client.post(f"{base}/adjustments", body, content_type=JSON)
+    assert repeated.status_code == 409
+    assert "já reajustou" in repeated.json()["error"]["message"]
+    overflow = client.post(
+        f"{base}/adjustments", {**body, "index_value_id": huge["id"]}, content_type=JSON
+    )
+    assert overflow.status_code == 400
+    assert "máximo" in overflow.json()["error"]["message"]
+    assert client.get(f"{base}").json()["installments"][0]["amount"] == "202000000000.00"
+    too_late = client.post(
+        f"{base}/installments",
+        {
+            "total": "100.00",
+            "parts": 12,
+            "first_due": "9999-06-01",
+            "frequency": "monthly",
+            "description": "Parcela",
+        },
+        content_type=JSON,
+    )
+    assert too_late.status_code == 400
+    assert "última data" in too_late.json()["error"]["message"]
+    assert (
+        client.post(
+            f"{base}/milestones",
+            {"description": "X", "due_date": due, "amount": "1e30"},
+            content_type=JSON,
+        ).status_code
+        == 400
+    )
+
+
 def test_finance_permissions_and_isolation() -> None:
     org, manager, finance, contract = _setup()
     manager_client = factories.client_for(manager, org)

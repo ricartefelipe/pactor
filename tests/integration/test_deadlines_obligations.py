@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import calendar
 import uuid
 import zoneinfo
 from dataclasses import replace
@@ -253,6 +254,33 @@ def test_automatic_renewal_requires_authorization_and_runs_once() -> None:
         cursor.execute(
             "UPDATE deadlines_renewalrecord SET new_end = '2100-01-01' WHERE id = %s", [record.id]
         )
+
+
+def test_monthly_renewals_keep_the_base_day_instead_of_drifting() -> None:
+    """31/01 + 1 mês = 28/02, mas o termo seguinte volta a 31/03 (base 31/01 + 2 meses)."""
+    today = timezone.localdate()
+    org, manager, contract = _active_contract(end=date(today.year - 1, 1, 31))
+    with tenant_context(org.id):
+        deadlines.configure_renewal(
+            factories.principal(org, manager),
+            contract.id,
+            mode=RenewalMode.AUTOMATIC,
+            term_months=1,
+            max_renewals=None,
+        )
+    assert _cycle()["renewals"] >= 12
+    with tenant_context(org.id):
+        records = list(RenewalRecord.objects.filter(contract=contract).order_by("sequence"))
+    ends = [record.new_end for record in records]
+    year = today.year - 1
+    assert ends[:3] == [
+        date(year, 2, calendar.monthrange(year, 2)[1]),
+        date(year, 3, 31),
+        date(year, 4, 30),
+    ]
+    assert all(end == add_months(date(today.year - 1, 1, 31), i + 1) for i, end in enumerate(ends))
+    assert all(record.rule["base_end"] == f"{today.year - 1}-01-31" for record in records)
+    assert ends[-1] >= today > ends[-2]
 
 
 def add_year(day: date) -> date:
