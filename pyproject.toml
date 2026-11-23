@@ -139,7 +139,7 @@ disallow_any_explicit = false
 
 [[tool.mypy.overrides]]
 # Bibliotecas sem stubs publicados; o uso fica encapsulado em adaptadores.
-module = ["pypdf.*", "docx.*", "allauth.*", "oauth2_provider.*", "csp.*", "pythonjsonlogger.*"]
+module = ["pypdf.*", "docx.*", "lxml.*", "allauth.*", "oauth2_provider.*", "csp.*", "pythonjsonlogger.*"]
 ignore_missing_imports = true
 
 [tool.django-stubs]
@@ -244,6 +244,10 @@ include = [
     "src/pactor/intake/services.py",
     "src/pactor/contracts/lifecycle.py",
     "src/pactor/contracts/lifecycle_services.py",
+    "src/pactor/files/services.py",
+    "src/pactor/files/inspection.py",
+    "src/pactor/files/scanner.py",
+    "src/pactor/files/selectors.py",
 ]
 exclude = []
 min_lines = 95.0

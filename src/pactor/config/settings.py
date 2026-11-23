@@ -59,6 +59,7 @@ INSTALLED_APPS = [
     "pactor.signatures",
     "pactor.drafting",
     "pactor.intake",
+    "pactor.files",
 ]
 
 MIDDLEWARE = [
@@ -350,6 +351,13 @@ DOCUSIGN_PRIVATE_KEY_PATH = env_str("DOCUSIGN_PRIVATE_KEY_PATH", "")
 DOCUSIGN_CONNECT_HMAC_KEY = env_str("DOCUSIGN_CONNECT_HMAC_KEY", "")
 DOCUSIGN_AUTH_SERVER = env_str("DOCUSIGN_AUTH_SERVER", "account-d.docusign.com")
 DOCUSIGN_BASE_URI = env_str("DOCUSIGN_BASE_URI", "https://demo.docusign.net/restapi")
+
+# ---------------------------------------------------------------------------
+# Arquivos e antimalware
+# ---------------------------------------------------------------------------
+PACTOR_MAX_UPLOAD_BYTES = env_int("PACTOR_MAX_UPLOAD_BYTES", 20 * 1024 * 1024)
+CLAMAV_HOST = env_str("CLAMAV_HOST", "localhost")
+CLAMAV_PORT = env_int("CLAMAV_PORT", 3310)
 
 # ---------------------------------------------------------------------------
 # E-mail

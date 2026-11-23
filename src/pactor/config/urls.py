@@ -11,6 +11,7 @@ from pactor.contracts.api import ContractViewSet
 from pactor.core import health
 from pactor.counterparties.api import CounterpartyViewSet
 from pactor.drafting.api import TemplateViewSet
+from pactor.files import api as files
 from pactor.identity import api as identity
 from pactor.intake.api import RequestViewSet
 from pactor.signatures import webhooks
@@ -53,6 +54,20 @@ api_v1 = [
         "contracts/<uuid:contract_id>/amendment-changes",
         lifecycle_api.AmendmentChangesView.as_view(),
         name="contract-amendment-changes",
+    ),
+    path("files", files.FileUploadView.as_view(), name="file-upload"),
+    path("files/<uuid:file_id>", files.FileDetailView.as_view(), name="file-detail"),
+    path("files/<uuid:file_id>/content", files.FileContentView.as_view(), name="file-content"),
+    path("files/<uuid:file_id>/preview", files.FilePreviewView.as_view(), name="file-preview"),
+    path(
+        "contracts/<uuid:contract_id>/attachments",
+        files.ContractAttachmentsView.as_view(),
+        name="contract-attachments",
+    ),
+    path(
+        "contracts/<uuid:contract_id>/attachments/<uuid:attachment_id>",
+        files.ContractAttachmentDetailView.as_view(),
+        name="contract-attachment-detail",
     ),
     path(
         "contracts/<uuid:contract_id>/conditions",
