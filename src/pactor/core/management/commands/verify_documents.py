@@ -7,7 +7,7 @@ from argparse import ArgumentParser
 
 from django.core.management.base import BaseCommand, CommandError
 
-from pactor.integrity import verify_documents
+from pactor.integrity import UnknownOrganizationsError, verify_documents
 
 
 class Command(BaseCommand):
@@ -27,7 +27,10 @@ class Command(BaseCommand):
 
     def handle(self, *args: object, **options: object) -> None:
         selected = options.get("organizations")
-        report = verify_documents(selected if isinstance(selected, list) else None)
+        try:
+            report = verify_documents(selected if isinstance(selected, list) else None)
+        except UnknownOrganizationsError as exc:
+            raise CommandError(f"Organização inexistente: {exc}.") from exc
         for finding in report.findings:
             self.stderr.write(
                 f"{finding.problem}: {finding.source} {finding.record_id} "
