@@ -27,5 +27,12 @@ Formato baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e
   rascunho com concorrência otimista, revisões imutáveis com fingerprint, comparação textual,
   comentários por linha e compartilhamento com usuários, equipes e participantes externos.
 - Visibilidade de contratos aplicada em consulta, equivalente à política (teste de propriedade).
+- Workflows de aprovação versionados com condições validadas (sem `eval`), etapas sequenciais e
+  paralelas, quórum, rejeição, solicitação de ajustes, delegação com prazo sem dupla contagem,
+  proibição de autoaprovação, bloqueio por perda de acesso e substituição auditada de aprovador.
+- Aprovação vinculada à revisão e ao fingerprint; nova revisão substitui a rodada aberta ou
+  invalida a aprovação concedida.
+- Validação do esquema OpenAPI sem avisos como gate da CI.
+- Mutation testing do núcleo de regras (manual e semanal).
 - Autenticação por e-mail com confirmação e MFA (django-allauth headless).
 - Pipeline de CI com lockfile, Ruff, mypy, pip-audit, Bandit, gitleaks, testes, gates de cobertura e análise da imagem.

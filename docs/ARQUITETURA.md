@@ -190,3 +190,29 @@ stateDiagram-v2
   usar dados anteriores a um commit concorrente.
 - **Comparação**: textual, por linhas (`difflib`); não há comparação semântica.
 - **Referências**: `CT-<ano>-<sequência>` por organização, com numerador travado.
+
+## Aprovações
+
+- **Workflow versionado** (`WorkflowDefinition`): regras ordenadas; cada regra tem condições
+  (campo permitido + operador permitido + valor tipado) e etapas. A última regra é a padrão,
+  sem condições. Publicar cria nova versão e desativa a anterior; não há edição in-place.
+- **Campos permitidos**: `contract_type`, `department_id`, `classification`, `confidentiality`
+  (operadores `eq`, `ne`, `in`, `not_in`) e `total_value` (`eq`, `ne`, `gt`, `gte`, `lt`, `lte`).
+  Valores lidos do snapshot da revisão submetida. Não há `eval` nem expressões.
+- **Rodada** (`ApprovalRound`): vinculada à revisão, ao fingerprint, à versão do workflow e
+  ao snapshot da regra usada. Uma rodada aberta por contrato.
+- **Etapas**: mesmo `order` ⇒ paralelas; `order` crescente ⇒ sequenciais. Quórum por etapa.
+- **Votos**: `aprovar`, `rejeitar` ou `solicitar ajustes`, com revisão e fingerprint gravados.
+  Restrições no banco: uma vaga vota uma vez; uma pessoa vota uma vez por etapa (impede dupla
+  contagem por delegação); votos são somente-inserção.
+- **Delegação**: intervalo semiaberto `[início, fim)`, revogável, sem sobreposição; o delegado
+  precisa ser aprovador ativo. Voto por delegação registra vaga (`approver`) e autor (`cast_by`).
+- **Autoaprovação**: quando proibida, autor da revisão e solicitante não votam nem por delegação.
+- **Perda de acesso**: vagas de quem perdeu associação ou papel não contam como elegíveis; a
+  etapa fica `blocked` se o quórum se tornar inatingível, até a substituição auditada do
+  aprovador (`replace-approver`). Votos já registrados são preservados.
+- **Disputa com nova revisão**: voto e publicação travam o contrato. Se o voto vem antes, a
+  publicação seguinte invalida a aprovação; se a publicação vem antes, a rodada é substituída
+  e o voto é recusado. Testado nas duas ordens com conexões separadas.
+- **Envio para assinatura** exige `approved`, revisão aprovada igual à vigente e fingerprint
+  idêntico, sem rodada aberta (`require_approved_for_signature`).
