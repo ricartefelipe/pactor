@@ -1,36 +1,90 @@
+import {
+  Activity,
+  Building2,
+  CalendarDays,
+  ChartColumn,
+  CircleCheck,
+  Files,
+  FileText,
+  Handshake,
+  Inbox,
+  LayoutDashboard,
+  LogOut,
+  Network,
+  Plug,
+  ScrollText,
+  Search,
+  ShieldCheck,
+  Users,
+  Workflow,
+  type LucideIcon,
+} from "lucide-react";
 import { useEffect, useRef, useState, type ChangeEvent } from "react";
 import { Link, NavLink, Outlet, useLocation, useNavigate, useNavigation } from "react-router";
 
 import { errorMessage } from "../api/errors";
 import { useActiveOrganization, useSession, type Permission } from "../auth/session";
+import { Brand } from "../components/Brand";
 import { useNotify } from "../components/notifications";
+import { initials } from "../lib/format";
 
 interface NavItem {
   to: string;
   label: string;
+  icon: LucideIcon;
   /** Visível com qualquer uma destas permissões (concedida ou pendente de MFA). */
   anyOf?: readonly Permission[];
 }
 
 const WORK: readonly NavItem[] = [
-  { to: "/", label: "Painel" },
-  { to: "/contratos", label: "Contratos", anyOf: ["contracts.read"] },
-  { to: "/solicitacoes", label: "Solicitações", anyOf: ["requests.create", "requests.manage"] },
-  { to: "/contrapartes", label: "Contrapartes", anyOf: ["counterparties.read"] },
-  { to: "/modelos", label: "Modelos", anyOf: ["templates.manage"] },
-  { to: "/aprovacoes", label: "Aprovações", anyOf: ["approvals.vote"] },
-  { to: "/calendario", label: "Calendário", anyOf: ["contracts.read"] },
-  { to: "/pesquisa", label: "Pesquisa", anyOf: ["contracts.read"] },
-  { to: "/relatorios", label: "Relatórios", anyOf: ["reports.read"] },
+  { to: "/", label: "Painel", icon: LayoutDashboard },
+  { to: "/contratos", label: "Contratos", icon: FileText, anyOf: ["contracts.read"] },
+  {
+    to: "/solicitacoes",
+    label: "Solicitações",
+    icon: Inbox,
+    anyOf: ["requests.create", "requests.manage"],
+  },
+  { to: "/contrapartes", label: "Contrapartes", icon: Handshake, anyOf: ["counterparties.read"] },
+  { to: "/modelos", label: "Modelos", icon: Files, anyOf: ["templates.manage"] },
+  { to: "/aprovacoes", label: "Aprovações", icon: CircleCheck, anyOf: ["approvals.vote"] },
+  { to: "/calendario", label: "Calendário", icon: CalendarDays, anyOf: ["contracts.read"] },
+  { to: "/pesquisa", label: "Pesquisa", icon: Search, anyOf: ["contracts.read"] },
+  { to: "/relatorios", label: "Relatórios", icon: ChartColumn, anyOf: ["reports.read"] },
 ];
 
 const ADMINISTRATION: readonly NavItem[] = [
-  { to: "/administracao/usuarios", label: "Usuários e convites", anyOf: ["members.manage"] },
-  { to: "/administracao/estrutura", label: "Departamentos e equipes", anyOf: ["members.manage"] },
-  { to: "/administracao/workflows", label: "Workflows de aprovação", anyOf: ["workflows.manage"] },
-  { to: "/administracao/integracoes", label: "Integrações", anyOf: ["integrations.manage"] },
-  { to: "/administracao/operacao", label: "Operação", anyOf: ["operations.reprocess"] },
-  { to: "/auditoria", label: "Auditoria", anyOf: ["audit.read"] },
+  {
+    to: "/administracao/usuarios",
+    label: "Usuários e convites",
+    icon: Users,
+    anyOf: ["members.manage"],
+  },
+  {
+    to: "/administracao/estrutura",
+    label: "Departamentos e equipes",
+    icon: Network,
+    anyOf: ["members.manage"],
+  },
+  {
+    to: "/administracao/workflows",
+    label: "Workflows de aprovação",
+    icon: Workflow,
+    anyOf: ["workflows.manage"],
+  },
+  {
+    to: "/administracao/integracoes",
+    label: "Integrações",
+    icon: Plug,
+    anyOf: ["integrations.manage"],
+  },
+  {
+    to: "/administracao/operacao",
+    label: "Operação",
+    icon: Activity,
+    anyOf: ["operations.reprocess"],
+  },
+  { to: "/auditoria", label: "Auditoria", icon: ScrollText, anyOf: ["audit.read"] },
 ];
 
 function NavList({ items, label }: { items: readonly NavItem[]; label: string }) {
@@ -46,7 +100,8 @@ function NavList({ items, label }: { items: readonly NavItem[]; label: string })
         {visible.map((item) => (
           <li key={item.to}>
             <NavLink to={item.to} end={item.to === "/"}>
-              {item.label}
+              <item.icon aria-hidden="true" size={18} strokeWidth={1.8} />
+              <span>{item.label}</span>
             </NavLink>
           </li>
         ))}
@@ -75,10 +130,16 @@ function OrganizationSwitcher() {
   }
 
   if (me.organizations.length < 2) {
-    return <span className="topbar__organization">{active.name}</span>;
+    return (
+      <span className="topbar__organization">
+        <Building2 aria-hidden="true" size={18} />
+        <span>{active.name}</span>
+      </span>
+    );
   }
   return (
     <div className="topbar__organization">
+      <Building2 aria-hidden="true" size={18} />
       <label htmlFor="organizacao-ativa" className="visually-hidden">
         Organização ativa
       </label>
@@ -122,36 +183,45 @@ export function Layout() {
       <a className="skip-link" href="#conteudo">
         Ir para o conteúdo
       </a>
-      <header className="topbar">
-        <Link to="/" className="topbar__brand">
-          Pactor
-        </Link>
-        <OrganizationSwitcher />
-        <nav aria-label="Conta" className="topbar__account">
-          <span className="topbar__user">{me.full_name || me.email}</span>
-          <Link to="/conta/seguranca">Segurança</Link>
-          <button
-            type="button"
-            className="button button--link"
-            onClick={() => void handleSignOut()}
-          >
-            Sair
-          </button>
-        </nav>
-      </header>
       <div className="shell">
-        <nav aria-label="Principal" className="sidebar">
-          <NavList items={WORK} label="Trabalho" />
-          <NavList items={ADMINISTRATION} label="Administração" />
-        </nav>
-        <main id="conteudo" ref={main} tabIndex={-1} className="content" aria-busy={navigating}>
-          {navigating && (
-            <p className="navigation-progress" role="status">
-              Abrindo página…
-            </p>
-          )}
-          <Outlet />
-        </main>
+        <aside className="sidebar">
+          <Link to="/" className="sidebar__brand" aria-label="Pactor: ir para o painel">
+            <Brand />
+          </Link>
+          <nav aria-label="Principal">
+            <NavList items={WORK} label="Trabalho" />
+            <NavList items={ADMINISTRATION} label="Administração" />
+          </nav>
+        </aside>
+        <div className="workspace">
+          <header className="topbar">
+            <OrganizationSwitcher />
+            <nav aria-label="Conta" className="topbar__account">
+              <span className="topbar__user">
+                <span className="avatar" aria-hidden="true">
+                  {initials(me.full_name, me.email)}
+                </span>
+                <span className="topbar__name">{me.full_name || me.email}</span>
+              </span>
+              <Link to="/conta/seguranca" className="topbar__action">
+                <ShieldCheck aria-hidden="true" size={18} />
+                <span>Segurança</span>
+              </Link>
+              <button type="button" className="topbar__action" onClick={() => void handleSignOut()}>
+                <LogOut aria-hidden="true" size={18} />
+                <span>Sair</span>
+              </button>
+            </nav>
+          </header>
+          <main id="conteudo" ref={main} tabIndex={-1} className="content" aria-busy={navigating}>
+            {navigating && (
+              <p className="navigation-progress" role="status">
+                Abrindo página…
+              </p>
+            )}
+            <Outlet />
+          </main>
+        </div>
       </div>
     </>
   );

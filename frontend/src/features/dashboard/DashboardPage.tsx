@@ -1,4 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
+import { CircleCheck, Clock, FileText, TriangleAlert, type LucideIcon } from "lucide-react";
 import { Link } from "react-router";
 
 import { api, unwrap } from "../../api/client";
@@ -15,35 +16,61 @@ import {
   labelOf,
 } from "../../lib/labels";
 
-function Metric({ label, value, to }: { label: string; value: number; to?: string }) {
+type MetricTone = "indigo" | "amber" | "sky" | "rose";
+
+function Metric({
+  label,
+  value,
+  to,
+  icon: Icon,
+  tone,
+}: {
+  label: string;
+  value: number;
+  to: string;
+  icon: LucideIcon;
+  tone: MetricTone;
+}) {
   return (
-    <div className="metric">
-      <p className="metric__value">{to ? <Link to={to}>{value}</Link> : value}</p>
-      <p className="metric__label">{label}</p>
-    </div>
+    <Link to={to} className={`metric metric--${tone}`}>
+      <span className="metric__icon" aria-hidden="true">
+        <Icon size={22} />
+      </span>
+      <span className="metric__body">
+        <span className="metric__value">{value}</span>
+        <span className="metric__label">{label}</span>
+      </span>
+    </Link>
   );
 }
 
-function Distribution<K extends string>({
+function Distribution({
   title,
   counts,
   labels,
 }: {
   title: string;
   counts: Readonly<Record<string, number>>;
-  labels: Readonly<Record<K, string>>;
+  labels: Readonly<Record<string, string>>;
 }) {
   const entries = Object.entries(counts).filter(([, value]) => value > 0);
+  const total = entries.reduce((sum, [, value]) => sum + value, 0);
   return (
-    <div>
+    <div className="distribution">
       <h3>{title}</h3>
       {entries.length === 0 ? (
-        <p>Nenhum contrato.</p>
+        <p className="muted">Nenhum contrato.</p>
       ) : (
-        <ul className="distribution">
+        <ul>
           {entries.map(([status, value]) => (
             <li key={status}>
-              <span>{labelOf(labels, status)}</span> <strong>{value}</strong>
+              <span className="distribution__label">{labelOf(labels, status)}</span>
+              <progress
+                max={total}
+                value={value}
+                aria-label={`${labelOf(labels, status)}: ${String(value)} de ${String(total)}`}
+              />
+              <strong>{value}</strong>
             </li>
           ))}
         </ul>
@@ -73,21 +100,33 @@ export function DashboardPage() {
         {(data) => (
           <>
             <div className="metrics">
-              <Metric label="Contratos visíveis" value={data.contracts_total} to="/contratos" />
+              <Metric
+                label="Contratos visíveis"
+                value={data.contracts_total}
+                to="/contratos"
+                icon={FileText}
+                tone="indigo"
+              />
               <Metric
                 label="Aprovações aguardando você"
                 value={data.pending_approvals}
                 to="/aprovacoes"
+                icon={CircleCheck}
+                tone="sky"
               />
               <Metric
                 label="Prazos nos próximos 30 dias"
                 value={data.deadlines_next_30_days}
                 to="/calendario"
+                icon={Clock}
+                tone="amber"
               />
               <Metric
                 label="Obrigações em atraso"
                 value={data.overdue_obligations}
                 to="/calendario"
+                icon={TriangleAlert}
+                tone="rose"
               />
             </div>
             <Section title="Situação dos contratos">
