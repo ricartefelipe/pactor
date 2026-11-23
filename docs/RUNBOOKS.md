@@ -125,12 +125,52 @@ download confere o hash. Prévias não têm hash: para elas, só a existência �
 divergências). Os testes de integração cobrem arquivo alterado, truncado ou
 ausente, prévia ausente e documento de assinatura apagado.
 
-## 4. Procedimentos escritos, ainda não exercitados
+## 4. Recuperação a um ponto no tempo (PITR) — exercitado
 
-- **Recuperação a um ponto no tempo** (arquivamento de WAL e `restore_command`):
-  exige armazenamento externo de WAL, que não existe no Compose local.
-- **Cópia externa e retenção dos backups** (criptografia em repouso, retenção
-  por 30 dias, teste mensal de restauração): depende do provedor de armazenamento.
+Recupera o banco até um instante anterior a um erro (ex.: atualização em massa
+indevida), combinando um backup base com os segmentos de WAL arquivados.
+
+**Exercitado em 23/11/2026** com `scripts/pitr-drill.sh` sobre um backup real do
+Pactor (feito com `pactor_backup`), em contêineres descartáveis. O script ativa o
+arquivamento de WAL, carrega o backup, faz o backup base (`pg_basebackup`), altera
+todos os títulos de contrato depois de um instante T e recupera até T. Resultado
+conferido:
+
+- o cluster sai da recuperação;
+- a contagem de contratos e os títulos anteriores à alteração são preservados;
+- a marca gravada antes de T existe e a gravada depois de T não existe;
+- a RLS forçada continua ativa.
+
+Executado em cerca de 18 segundos. O controle negativo (alvo depois do último WAL
+arquivado) falha com `recovery ended before configured recovery target was
+reached`, e o script termina com erro. A CI repete o exercício a cada execução do
+job ponta a ponta, com os dados gerados pelo roteiro.
+
+```sh
+make pitr-drill DUMP=backups/<arquivo>.dump
+```
+
+### Configuração em produção
+
+1. No PostgreSQL: `wal_level = replica`, `archive_mode = on` e um
+   `archive_command` que copie cada segmento para armazenamento externo, versionado
+   e com retenção (ex.: um bucket com objeto imutável). O comando precisa falhar
+   quando o destino já existir. `archive_timeout` limita a perda máxima (ex.: 60 s).
+2. Backup base diário com `pg_basebackup -Xs` (ou com a ferramenta do provedor),
+   no mesmo armazenamento, mantido por mais tempo que o WAL mais antigo necessário.
+3. Para recuperar: pare os processos que escrevem no banco, restaure o backup base
+   em um diretório novo, crie `recovery.signal` e configure
+   `restore_command`, `recovery_target_time = '<instante em UTC>'` e
+   `recovery_target_action = promote`. Inicie o servidor e confira os dados antes
+   de apontar a aplicação para ele.
+4. Depois de recuperar, rode `verify_documents` (seção 3) e compare o volume de
+   documentos com o banco recuperado.
+
+### Ainda não exercitado
+
+- **Cópia externa e retenção dos backups e do WAL** (criptografia em repouso,
+  retenção por 30 dias, teste mensal de restauração): depende do provedor de
+  armazenamento, que não existe no ambiente local.
 
 ## 5. Outbox, consumidores e reprocessamento
 

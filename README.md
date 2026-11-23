@@ -103,8 +103,9 @@ da imagem (Trivy) e do roteiro ponta a ponta com a pilha do Compose.
 - **Integração com o Docusign**: o adaptador está implementado e coberto por testes
   com transporte simulado, mas nunca rodou contra o ambiente real, por falta de
   credenciais. O teste existe (`make test-external`) e falha sem elas.
-- **Recuperação a um ponto no tempo** (WAL): existe só como procedimento escrito;
-  backup, restauração e conferência de integridade dos documentos foram exercitados.
+- **Cópia externa e retenção de backups e WAL**: dependem do provedor de armazenamento.
+  Backup, restauração, recuperação a um ponto no tempo e conferência de integridade
+  dos documentos foram exercitados.
 - **Idioma**: somente português do Brasil.
 - **Ferramentas só na CI**: gitleaks e Trivy rodam apenas na CI, não no ambiente local.
 - **Mutation testing**: roda semanalmente e sob demanda, não a cada pull request.
