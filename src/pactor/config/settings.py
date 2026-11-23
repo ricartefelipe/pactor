@@ -308,6 +308,9 @@ SPECTACULAR_SETTINGS = {
     "VERSION": "1.0.0",
     "SERVE_INCLUDE_SCHEMA": False,
     "SCHEMA_PATH_PREFIX": "/api/v1",
+    # Componentes separados para requisição e resposta: campos somente leitura
+    # (id, versões, datas) não aparecem como exigidos nos corpos enviados.
+    "COMPONENT_SPLIT_REQUEST": True,
     # Conjuntos de escolhas com o mesmo nome de campo em recursos diferentes
     # recebem nomes explícitos e estáveis no esquema.
     "ENUM_NAME_OVERRIDES": {
