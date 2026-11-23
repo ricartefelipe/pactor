@@ -1,0 +1,6 @@
+#!/bin/sh
+# Antecipação local de verificações rápidas. A CI continua sendo o gate.
+set -eu
+uv run ruff check .
+uv run ruff format --check .
+uv run pytest -m unit -q

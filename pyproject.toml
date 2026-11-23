@@ -1,0 +1,274 @@
+[project]
+name = "pactor"
+version = "0.1.0"
+description = "Plataforma SaaS B2B multitenant para gestão do ciclo de vida de contratos."
+readme = "README.md"
+requires-python = ">=3.13,<3.14"
+license = { text = "Proprietary" }
+dependencies = [
+    "argon2-cffi==25.1.0",
+    "celery==5.7.0",
+    "django==5.2.19",
+    "django-allauth[headless,mfa]==65.22.1",
+    "django-csp==4.0",
+    "django-oauth-toolkit==3.4.1",
+    "django-stubs-ext==5.2.9",
+    "djangorestframework==3.18.3",
+    "drf-spectacular==0.30.0",
+    "gunicorn==27.0.1",
+    "httpx==0.28.1",
+    "kombu==5.7.0",
+    "prometheus-client==0.26.0",
+    "psycopg[binary]==3.3.9",
+    "pyjwt[crypto]==2.15.1",
+    "pypdf==7.1.1",
+    "python-docx==1.2.0",
+    "python-json-logger==4.2.0",
+    "redis==8.1.0",
+    "reportlab==5.1.0",
+    "tzdata==2026.6",
+    "whitenoise==6.12.0",
+]
+
+[dependency-groups]
+dev = [
+    "bandit==1.9.4",
+    "celery-types==0.26.0",
+    "django-stubs==5.2.9",
+    "djangorestframework-stubs==3.16.9",
+    "hypothesis==6.170.17",
+    "mutmut==3.8.1",
+    "mypy==1.19.1",
+    "pip-audit==2.10.1",
+    "pytest==9.2.0",
+    "pytest-cov==7.1.0",
+    "pytest-django==4.14.0",
+    "pytest-xdist==3.8.0",
+    "ruff==0.17.6",
+    "types-reportlab==5.1.0.20261104",
+]
+
+[build-system]
+requires = ["hatchling==1.33.0"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/pactor"]
+
+[tool.uv]
+default-groups = ["dev"]
+
+# ---------------------------------------------------------------------------
+# Ruff
+# ---------------------------------------------------------------------------
+[tool.ruff]
+line-length = 100
+target-version = "py313"
+src = ["src", "tests"]
+extend-exclude = ["frontend", "src/pactor/**/migrations"]
+
+[tool.ruff.lint]
+select = [
+    "A", "ARG", "B", "BLE", "C4", "DJ", "DTZ", "E", "EM", "ERA", "F", "FBT", "G",
+    "I", "ISC", "LOG", "N", "PERF", "PIE", "PL", "PT", "PTH", "RET", "RSE", "RUF",
+    "S", "SIM", "SLF", "T10", "T20", "TC", "TID", "TRY", "UP", "W",
+]
+ignore = [
+    # Conflitam com o formatador do Ruff.
+    "ISC001",
+    # Mensagens de exceção do domínio são curtas e específicas; exigir variável
+    # intermediária em todas prejudica a legibilidade.
+    "TRY003", "EM101", "EM102",
+    # Django, DRF e pytest inspecionam anotações em tempo de execução; mover
+    # importações para blocos TYPE_CHECKING causa falhas sutis nessas camadas.
+    "TC001", "TC002", "TC003",
+]
+
+[tool.ruff.lint.per-file-ignores]
+# Testes usam assert do pytest, valores fixos e acessam membros internos de
+# objetos de teste de forma deliberada.
+# PT012/PT018: testes de context managers precisam de vários comandos dentro
+# de pytest.raises, e asserts compostos descrevem um único estado esperado.
+# S603: subprocessos de teste usam argumentos fixos, sem shell.
+"tests/**" = ["S101", "S105", "S106", "PLR2004", "SLF001", "ARG001", "FBT001", "PT012", "PT018", "S603"]
+
+[tool.ruff.lint.flake8-unused-arguments]
+# *args/**kwargs exigidos pelas assinaturas de DRF e Celery.
+ignore-variadic-names = true
+
+[tool.ruff.lint.flake8-self]
+# `_meta` é a API documentada de metadados de models do Django.
+extend-ignore-names = ["_meta"]
+
+[tool.ruff.lint.pylint]
+max-args = 8
+
+[tool.ruff.lint.isort]
+known-first-party = ["pactor"]
+
+[tool.ruff.format]
+docstring-code-format = true
+
+# ---------------------------------------------------------------------------
+# mypy: estrito em todo o pacote; fronteiras Django usam o plugin de stubs.
+# ---------------------------------------------------------------------------
+[tool.mypy]
+python_version = "3.13"
+mypy_path = "src"
+files = ["src", "tests"]
+strict = true
+warn_unreachable = true
+disallow_any_explicit = true
+enable_error_code = ["ignore-without-code", "redundant-expr", "truthy-bool", "possibly-undefined"]
+plugins = ["mypy_django_plugin.main", "mypy_drf_plugin.main"]
+exclude = ["src/pactor/.*/migrations/"]
+
+[[tool.mypy.overrides]]
+# Fronteiras Django/DRF: o código da aplicação é estrito, mas as classes base
+# do framework expõem `Any` em suas assinaturas (ex.: Serializer.validate,
+# APIView.dispatch). Exigir ausência total de `Any` explícito nessas camadas
+# obrigaria anotações falsas; o restante do modo estrito continua ativo.
+module = [
+    "pactor.*.api",
+    "pactor.*.api.*",
+    "pactor.*.admin",
+    "pactor.*.serializers",
+    "pactor.config.*",
+]
+disallow_any_explicit = false
+
+[[tool.mypy.overrides]]
+# Chamadas a APIs sem anotações em bibliotecas: registro de extensões do
+# drf-spectacular (__init_subclass__) e funções multiprocesso do prometheus_client.
+# A exceção vale somente para estes três módulos.
+module = ["pactor.access.schema", "pactor.core.metrics", "pactor.config.gunicorn"]
+disallow_untyped_calls = false
+
+[[tool.mypy.overrides]]
+# Bibliotecas sem stubs publicados; o uso fica encapsulado em adaptadores.
+module = ["pypdf.*", "docx.*", "lxml.*", "allauth.*", "oauth2_provider.*", "csp.*", "pythonjsonlogger.*"]
+ignore_missing_imports = true
+
+[tool.django-stubs]
+django_settings_module = "pactor.config.settings"
+
+# ---------------------------------------------------------------------------
+# pytest
+# ---------------------------------------------------------------------------
+[tool.pytest.ini_options]
+DJANGO_SETTINGS_MODULE = "pactor.config.settings"
+pythonpath = ["src"]
+testpaths = ["tests"]
+addopts = ["--strict-markers", "--strict-config", "-ra"]
+xfail_strict = true
+# Avisos viram erros. A única exceção: o WhiteNoise avisa quando STATIC_ROOT
+# ainda não foi gerado por collectstatic, o que é esperado na suíte de testes.
+filterwarnings = ["error", "ignore:No directory at:UserWarning"]
+markers = [
+    "unit: regras puras, sem banco, broker, cache ou rede",
+    "db: exige PostgreSQL real",
+    "concurrency: disputa entre conexões ou processos separados",
+    "infra: exige RabbitMQ, Redis e worker Celery reais",
+    "external: exige credenciais de provedores externos",
+]
+
+[tool.coverage.run]
+branch = true
+source = ["src/pactor"]
+omit = ["src/pactor/*/migrations/*", "src/pactor/config/wsgi.py"]
+
+[tool.coverage.report]
+show_missing = true
+skip_covered = true
+exclude_also = ["if TYPE_CHECKING:", "raise NotImplementedError", "@overload"]
+
+[tool.bandit]
+exclude_dirs = ["tests", "frontend"]
+
+[tool.mutmut]
+# Escopo do mutation testing: regras de autorização, vínculo entre aprovação e
+# revisão, transições e cálculos puros. Executado com a suíte unitária.
+source_paths = ["src/pactor"]
+only_mutate = [
+    "src/pactor/access/policies.py",
+    "src/pactor/approvals/domain.py",
+    "src/pactor/contracts/domain.py",
+    "src/pactor/counterparties/domain.py",
+    "src/pactor/drafting/domain.py",
+    "src/pactor/contracts/lifecycle.py",
+    "src/pactor/deadlines/calendar.py",
+    "src/pactor/finance/money.py",
+]
+pytest_add_cli_args_test_selection = ["tests/unit"]
+pytest_add_cli_args = ["-p", "no:cacheprovider", "-q"]
+also_copy = ["tests", "manage.py"]
+
+# ---------------------------------------------------------------------------
+# Gates de cobertura por escopo (verificados por scripts/check_coverage.py).
+# "core" reúne regras de negócio e casos de uso; "critical" reúne caminhos em
+# que um desvio compromete isolamento, integridade documental ou dinheiro.
+# ---------------------------------------------------------------------------
+[[tool.pactor.coverage-gates]]
+name = "core"
+include = [
+    "src/pactor/*/domain.py",
+    "src/pactor/*/domain/*.py",
+    "src/pactor/*/services.py",
+    "src/pactor/*/services/*.py",
+    "src/pactor/*/policies.py",
+    "src/pactor/*/calendar.py",
+    "src/pactor/*/diff.py",
+    "src/pactor/*/money.py",
+    "src/pactor/core/*.py",
+]
+exclude = ["src/pactor/core/health.py", "src/pactor/core/db.py", "src/pactor/core/models.py"]
+min_lines = 95.0
+min_branches = 90.0
+
+[[tool.pactor.coverage-gates]]
+name = "critical"
+include = [
+    "src/pactor/core/tenancy.py",
+    "src/pactor/core/outbox.py",
+    "src/pactor/core/consumers.py",
+    "src/pactor/core/idempotency.py",
+    "src/pactor/access/*.py",
+    "src/pactor/identity/services.py",
+    "src/pactor/identity/invitations.py",
+    "src/pactor/plans/services.py",
+    "src/pactor/audit/services.py",
+    "src/pactor/approvals/domain.py",
+    "src/pactor/approvals/services.py",
+    "src/pactor/contracts/services.py",
+    "src/pactor/contracts/selectors.py",
+    "src/pactor/contracts/transitions.py",
+    "src/pactor/contracts/visibility.py",
+    "src/pactor/contracts/diff.py",
+    "src/pactor/counterparties/services.py",
+    "src/pactor/signatures/services.py",
+    "src/pactor/signatures/simulator.py",
+    "src/pactor/signatures/docusign.py",
+    "src/pactor/signatures/storage.py",
+    "src/pactor/drafting/services.py",
+    "src/pactor/intake/services.py",
+    "src/pactor/contracts/lifecycle.py",
+    "src/pactor/contracts/lifecycle_services.py",
+    "src/pactor/files/services.py",
+    "src/pactor/files/inspection.py",
+    "src/pactor/files/scanner.py",
+    "src/pactor/files/selectors.py",
+    "src/pactor/deadlines/calendar.py",
+    "src/pactor/deadlines/services.py",
+    "src/pactor/obligations/services.py",
+    "src/pactor/finance/money.py",
+    "src/pactor/finance/services.py",
+    "src/pactor/search/services.py",
+    "src/pactor/search/indexing.py",
+    "src/pactor/search/reports.py",
+    "src/pactor/integrations/services.py",
+    "src/pactor/access/authentication.py",
+    "src/pactor/access/permissions.py",
+]
+exclude = []
+min_lines = 95.0
+min_branches = 90.0
