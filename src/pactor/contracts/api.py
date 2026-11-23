@@ -361,7 +361,7 @@ class ContractViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, TenantVi
         responses={201: RevisionDetailSerializer},
         parameters=[IDEMPOTENCY_KEY],
     )
-    @action(detail=True, methods=["get", "post"])
+    @action(detail=True, methods=["get", "post"], pagination_class=None)
     def revisions(self, request: Request, pk: uuid.UUID) -> Response:
         contract_id = pk
         if request.method == "GET":
@@ -425,6 +425,7 @@ class ContractViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, TenantVi
         detail=True,
         methods=["get", "post"],
         url_path="revisions/<uuid:revision_id>/comments",
+        pagination_class=None,
     )
     def comments(self, request: Request, pk: uuid.UUID, revision_id: uuid.UUID) -> Response:
         contract_id, rev_id = pk, revision_id
@@ -453,7 +454,7 @@ class ContractViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, TenantVi
     @extend_schema(
         methods=["POST"], request=GrantCreateSerializer, responses={201: GrantSerializer}
     )
-    @action(detail=True, methods=["get", "post"])
+    @action(detail=True, methods=["get", "post"], pagination_class=None)
     def grants(self, request: Request, pk: uuid.UUID) -> Response:
         contract_id = pk
         if request.method == "GET":

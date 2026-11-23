@@ -9,7 +9,7 @@ from django.utils import timezone
 
 from pactor.access.policies import Role
 from pactor.contracts import services as contracts
-from pactor.contracts.api import ComparisonSerializer
+from pactor.contracts.api import ComparisonSerializer, RevisionSummarySerializer
 from pactor.core.api.operations import RequeuedSerializer
 from pactor.core.tenancy import tenant_context
 from pactor.deadlines import services as deadlines
@@ -78,6 +78,9 @@ def test_search_report_and_calendar_responses_match_their_documentation() -> Non
     ).json()
     assert comparison["hunks"]
     assert_matches(ComparisonSerializer(), comparison)
+    revisions = client.get(f"/api/v1/contracts/{contract.id}/revisions").json()
+    assert [r["number"] for r in revisions] == [2, 1]
+    assert_matches(RevisionSummarySerializer(many=True), revisions)
 
 
 def test_operations_response_matches_its_documentation() -> None:

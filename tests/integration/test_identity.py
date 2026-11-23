@@ -19,7 +19,7 @@ from pactor.core.errors import (
 from pactor.core.models import OutboxEvent
 from pactor.core.tenancy import tenant_context
 from pactor.identity import services
-from pactor.identity.api import AcceptedInvitationSerializer
+from pactor.identity.api import AcceptedInvitationSerializer, DirectoryEntrySerializer
 from pactor.identity.invitations import make_token
 from pactor.identity.models import Invitation, Membership, MembershipKind, MembershipStatus
 from pactor.plans.models import Subscription
@@ -113,7 +113,7 @@ def test_members_listing_requires_management_permission() -> None:
     assert client.get("/api/v1/members").status_code == 403
     directory = client.get("/api/v1/members/directory")
     assert directory.status_code == 200
-    assert {"user_id", "full_name", "email"} == set(directory.json()[0])
+    assert_matches(DirectoryEntrySerializer(many=True), directory.json())
 
 
 def test_external_participant_cannot_use_directory_or_departments() -> None:

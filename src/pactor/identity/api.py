@@ -156,6 +156,12 @@ class MeSerializer(serializers.Serializer[None]):
     role_labels = serializers.DictField(child=serializers.CharField())
 
 
+class DirectoryEntrySerializer(serializers.Serializer[None]):
+    user_id = serializers.UUIDField()
+    full_name = serializers.CharField()
+    email = serializers.EmailField()
+
+
 class AcceptedInvitationSerializer(serializers.Serializer[None]):
     organization_id = serializers.UUIDField()
 
@@ -294,7 +300,8 @@ class MemberViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, TenantView
         )
         return Response(MembershipSerializer(self.get_queryset().get(id=membership.id)).data)
 
-    @action(detail=False, methods=["get"])
+    @extend_schema(responses=DirectoryEntrySerializer(many=True))
+    @action(detail=False, methods=["get"], pagination_class=None)
     def directory(self, _request: Request) -> Response:
         """Lista mínima (id, nome, e-mail) de membros internos ativos.
 
