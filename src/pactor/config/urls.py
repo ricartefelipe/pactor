@@ -4,13 +4,15 @@ from django.urls import include, path
 from drf_spectacular.views import SpectacularAPIView
 from rest_framework.routers import SimpleRouter
 
+from pactor.approvals.api import ApprovalRoundViewSet, DelegationViewSet, WorkflowViewSet
 from pactor.audit.api import AuditEventViewSet
 from pactor.contracts.api import ContractViewSet
 from pactor.core import health
 from pactor.counterparties.api import CounterpartyViewSet
 from pactor.identity import api as identity
 
-router = SimpleRouter(trailing_slash=False)
+# Conversor de caminho uuid: tipagem correta no OpenAPI e 404 para ids malformados.
+router = SimpleRouter(trailing_slash=False, use_regex_path=False)
 router.register("members", identity.MemberViewSet, basename="member")
 router.register("invitations", identity.InvitationViewSet, basename="invitation")
 router.register("departments", identity.DepartmentViewSet, basename="department")
@@ -18,6 +20,9 @@ router.register("teams", identity.TeamViewSet, basename="team")
 router.register("audit-events", AuditEventViewSet, basename="audit-event")
 router.register("counterparties", CounterpartyViewSet, basename="counterparty")
 router.register("contracts", ContractViewSet, basename="contract")
+router.register("workflows", WorkflowViewSet, basename="workflow")
+router.register("approval-rounds", ApprovalRoundViewSet, basename="approval-round")
+router.register("delegations", DelegationViewSet, basename="delegation")
 
 api_v1 = [
     path("me", identity.MeView.as_view(), name="me"),

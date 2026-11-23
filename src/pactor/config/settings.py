@@ -55,6 +55,7 @@ INSTALLED_APPS = [
     "pactor.notifications",
     "pactor.counterparties",
     "pactor.contracts",
+    "pactor.approvals",
 ]
 
 MIDDLEWARE = [
@@ -280,6 +281,21 @@ SPECTACULAR_SETTINGS = {
     "VERSION": "1.0.0",
     "SERVE_INCLUDE_SCHEMA": False,
     "SCHEMA_PATH_PREFIX": "/api/v1",
+    # Conjuntos de escolhas com o mesmo nome de campo em recursos diferentes
+    # recebem nomes explícitos e estáveis no esquema.
+    "ENUM_NAME_OVERRIDES": {
+        "ConfidentialityEnum": "pactor.contracts.models.CONFIDENTIALITY_CHOICES",
+        "PartyRoleEnum": "pactor.contracts.models.PARTY_ROLE_CHOICES",
+        "PartyKindEnum": "pactor.counterparties.models.PARTY_KIND_CHOICES",
+        "RoleEnum": "pactor.identity.models.ROLE_CHOICES",
+        "MembershipKindEnum": "pactor.identity.models.MembershipKind",
+        "MembershipStatusEnum": "pactor.identity.models.MembershipStatus",
+        "InvitationStatusEnum": "pactor.identity.models.InvitationStatus",
+        "RevisionSourceEnum": "pactor.contracts.models.RevisionSource",
+        "GrantSourceEnum": "pactor.contracts.models.GrantSource",
+        "RoundStatusEnum": "pactor.approvals.models.RoundStatus",
+        "DraftingStatusEnum": "pactor.contracts.models.DRAFTING_CHOICES",
+    },
 }
 
 # ---------------------------------------------------------------------------

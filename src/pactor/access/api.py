@@ -94,4 +94,6 @@ class TenantAPIView(TenantScopedMixin):
 
 
 class TenantViewSet(TenantScopedMixin, _GenericViewSet):
-    """ViewSet vinculado à organização ativa."""
+    """ViewSet vinculado à organização ativa. Identificadores de recurso são UUID."""
+
+    lookup_value_converter = "uuid"

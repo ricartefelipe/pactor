@@ -136,3 +136,21 @@ django-allauth). Sem isso, a API responde `mfa_required`.
 
 **Decisão.** `HEADLESS_ONLY` com cliente `browser`: sessão no servidor, cookie `HttpOnly` e CSRF
 em login/logout. O cliente `app` (tokens) fica desabilitado; nenhum token é exposto ao JavaScript.
+
+## ADR-018 — Condições de workflow como dados validados
+
+**Decisão.** Condições são tuplas (campo, operador, valor) de listas fechadas, validadas na
+publicação e avaliadas por funções puras. Valores decimais são texto ou inteiro (nunca `float`).
+
+**Consequências.** Nenhuma entrada do usuário é executada; regras novas exigem código revisado.
+
+## ADR-019 — Aprovadores ganham acesso temporário ao contrato
+
+**Decisão.** A abertura da rodada cria concessões `approval` para as vagas; o encerramento as
+remove. Assim, aprovadores de contratos confidenciais enxergam o conteúdo somente durante a rodada.
+
+## ADR-020 — Mutation testing semanal no núcleo de regras
+
+**Decisão.** `mutmut` sobre políticas de acesso, domínio de aprovações, domínio de contratos e
+documentos (`make mutation`; workflow `mutation.yml` manual e semanal). Não é gate de PR pelo
+custo; os sobreviventes são analisados e registrados em `STATUS.md`.

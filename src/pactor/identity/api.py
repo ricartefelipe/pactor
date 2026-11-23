@@ -15,7 +15,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from pactor.access.api import TenantAPIView, TenantViewSet
-from pactor.access.policies import ROLE_LABELS, Decision, Permission, Role, decide
+from pactor.access.policies import ROLE_LABELS, Decision, Permission, decide
 from pactor.access.principal import (
     ACTIVE_ORGANIZATION_SESSION_KEY,
     load_active_membership,
@@ -26,6 +26,7 @@ from pactor.core.errors import AccessDeniedError, NotFoundError
 from pactor.identity import services
 from pactor.identity.mfa import has_mfa_enrolled, session_used_mfa
 from pactor.identity.models import (
+    ROLE_CHOICES,
     Department,
     Invitation,
     Membership,
@@ -86,7 +87,7 @@ class MembershipSerializer(serializers.ModelSerializer[Membership]):
 
 
 class MembershipUpdateSerializer(serializers.Serializer[Membership]):
-    roles = serializers.ListField(child=serializers.ChoiceField(choices=[r.value for r in Role]))
+    roles = serializers.ListField(child=serializers.ChoiceField(choices=ROLE_CHOICES))
     department_ids = serializers.ListField(child=serializers.UUIDField(), default=list)
     team_ids = serializers.ListField(child=serializers.UUIDField(), default=list)
 
@@ -240,12 +241,12 @@ class MemberViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, TenantView
         )
 
     @extend_schema(request=MembershipUpdateSerializer, responses=MembershipSerializer)
-    def partial_update(self, request: Request, pk: str) -> Response:
+    def partial_update(self, request: Request, pk: uuid.UUID) -> Response:
         serializer = MembershipUpdateSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         membership = services.update_membership(
             self.principal,
-            uuid.UUID(pk),
+            pk,
             roles=serializer.validated_data["roles"],
             department_ids=serializer.validated_data["department_ids"],
             team_ids=serializer.validated_data["team_ids"],
@@ -254,11 +255,11 @@ class MemberViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, TenantView
 
     @extend_schema(request=RevokeSerializer, responses=MembershipSerializer)
     @action(detail=True, methods=["post"])
-    def revoke(self, request: Request, pk: str) -> Response:
+    def revoke(self, request: Request, pk: uuid.UUID) -> Response:
         serializer = RevokeSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         membership = services.revoke_membership(
-            self.principal, uuid.UUID(pk), reason=serializer.validated_data["reason"]
+            self.principal, pk, reason=serializer.validated_data["reason"]
         )
         return Response(MembershipSerializer(self.get_queryset().get(id=membership.id)).data)
 
@@ -311,8 +312,8 @@ class InvitationViewSet(mixins.ListModelMixin, mixins.CreateModelMixin, TenantVi
 
     @extend_schema(request=None, responses=InvitationSerializer)
     @action(detail=True, methods=["post"])
-    def revoke(self, _request: Request, pk: str) -> Response:
-        invitation = services.revoke_invitation(self.principal, uuid.UUID(pk))
+    def revoke(self, _request: Request, pk: uuid.UUID) -> Response:
+        invitation = services.revoke_invitation(self.principal, pk)
         return Response(InvitationSerializer(invitation).data)
 
 
@@ -360,9 +361,31 @@ class TeamViewSet(mixins.ListModelMixin, mixins.CreateModelMixin, TenantViewSet)
         return Response(NamedSerializer(team).data, status=status.HTTP_201_CREATED)
 
 
+class PlanSerializer(serializers.Serializer[Plan]):
+    code = serializers.CharField()
+    name = serializers.CharField()
+    monthly_price = serializers.DecimalField(max_digits=10, decimal_places=2)
+    max_users = serializers.IntegerField()
+    max_active_contracts = serializers.IntegerField()
+    max_storage_bytes = serializers.IntegerField()
+    modules = serializers.ListField(child=serializers.CharField())
+
+
+class UsageSerializer(serializers.Serializer[None]):
+    users = serializers.IntegerField()
+
+
+class SubscriptionSerializer(serializers.Serializer[None]):
+    plan = PlanSerializer()
+    status = serializers.CharField()
+    trial_ends_at = serializers.DateTimeField(allow_null=True)
+    usage = UsageSerializer()
+
+
 class SubscriptionView(TenantAPIView):
     action_permissions: ClassVar[dict[str, Permission | None]] = {"get": Permission.BILLING_MANAGE}
 
+    @extend_schema(responses=SubscriptionSerializer)
     def get(self, _request: Request) -> Response:
         subscription = plans.current_subscription()
         plan = subscription.plan
