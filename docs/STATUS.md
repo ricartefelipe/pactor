@@ -21,11 +21,14 @@ dependência real; sem essa marca, o item tem código e testes locais.
 | Visibilidade | Consulta equivalente à política (Hypothesis sobre PostgreSQL), confidenciais, externos, equipes | `test_property_visibility_query_matches_policy` |
 | Aprovações | Workflow versionado, condições validadas, sequencial/paralelo, quórum, rejeição, ajustes, delegação, autoaprovação, perda de acesso, substituição | `tests/integration/test_approvals.py`, `tests/unit/test_approval_domain.py` |
 | Disputa aprovação × nova revisão | Duas ordens forçadas com conexões separadas; invariante verificada | `tests/concurrency/test_approval_vs_revision_race.py` |
+| Assinaturas (simulador) | Envio da revisão aprovada, hash do enviado/retornado, ordem, participante × envelope, webhook duplicado e fora de ordem, envelope antigo, timeout após criação, indisponibilidade, cancelamento, reconciliação | `tests/integration/test_signatures.py`, `test_signature_rejections.py` |
+| Assinaturas (worker real) | Outbox → RabbitMQ → worker `integrations` → simulador | `tests/infra/test_signature_pipeline.py` (exercitado) |
+| Adaptador Docusign | Formato das requisições, JWT, referência, classificação de falhas, HMAC do Connect | `tests/unit/test_docusign_adapter.py` (transporte simulado; **integração real não exercitada** por falta de credenciais) |
 | Concorrência de revisões | Edição simultânea de rascunho e publicação simultânea | `tests/concurrency/test_revision_races.py` |
 
 ## Em andamento
 
-- Envio ao simulador de assinatura e adaptador Docusign.
+- Frontend web.
 
 ## Verificações executadas
 
@@ -39,7 +42,8 @@ dependência real; sem essa marca, o item tem código e testes locais.
 
 ## Pendências reais
 
-- Assinaturas, vigência, obrigações, prazos, valores, arquivos,
+- Integração Docusign real (adaptador pronto; requer credenciais de demonstração para `make test-external`).
+- Frontend, vigência, obrigações, prazos, valores, arquivos,
   pesquisa, integrações OAuth e frontend.
 - Teste de perda de worker durante a execução (redelivery com `acks_late`) ainda não automatizado.
 - Anexos de revisão entram no fingerprint quando o módulo de arquivos for integrado.
