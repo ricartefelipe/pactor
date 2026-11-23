@@ -12,6 +12,7 @@ from django.utils import timezone
 
 from pactor.approvals import services as approvals
 from pactor.approvals.domain import Decision
+from pactor.audit.models import AuditEvent
 from pactor.contracts import lifecycle_services as lifecycle
 from pactor.contracts import services as contracts
 from pactor.contracts.domain import ContractType, PartyRole
@@ -19,6 +20,8 @@ from pactor.contracts.lifecycle import ConditionField
 from pactor.contracts.models import Contract, LifecycleEvent, LifecyclePolicy
 from pactor.core.errors import DomainValidationError, InvalidTransitionError, PlanLimitExceededError
 from pactor.core.tenancy import tenant_context
+from pactor.deadlines import services as deadline_services
+from pactor.deadlines.models import DeadlineAnchor, DeadlineKind
 from pactor.deadlines.tasks import daily_cycle
 from pactor.identity.models import Organization
 from pactor.plans.models import Plan
@@ -265,6 +268,69 @@ def test_amendment_changes_resolve_conditions_by_date_without_rewriting_original
     }
     listed = client.get(f"/api/v1/contracts/{amendment.id}/amendment-changes").json()
     assert [c["field"] for c in listed] == ["total_value", "effective_end"]
+
+
+def test_signed_amendment_extends_the_end_used_by_expiry_and_deadlines() -> None:
+    a = _approved_with_dates(None, date(2027, 12, 31))
+    _sign(a)
+    with tenant_context(a.org.id):
+        principal = factories.principal_for_owner(a.org, a.manager)
+        notice = deadline_services.create_deadline(
+            principal,
+            a.contract.id,
+            deadline_services.DeadlineInput(
+                DeadlineKind.TERMINATION_NOTICE,
+                "Aviso de não renovação",
+                DeadlineAnchor.EFFECTIVE_END,
+                -30,
+            ),
+        )
+        assert notice.due_date == date(2027, 12, 1)
+        amendment = contracts.create_contract(
+            principal,
+            contracts.ContractInput(
+                title="Aditivo de prorrogação (exemplo fictício)",
+                contract_type=ContractType.AMENDMENT,
+                counterparty_id=a.contract.counterparty_id,
+                organization_role=PartyRole.CONTRACTOR,
+                counterparty_role=PartyRole.CONTRACTED,
+                owner_id=a.manager.id,
+                parent_id=a.contract.id,
+                initial_content="Prorroga a vigência por um ano.",
+            ),
+        )
+        lifecycle.add_amendment_change(
+            principal,
+            amendment.id,
+            field=ConditionField.EFFECTIVE_END,
+            value="2028-12-31",
+            effective_from=date(2027, 6, 1),
+        )
+        contracts.publish_revision(principal, amendment.id, expected_draft_version=1)
+    _approve(a, amendment)
+    _sign(a, amendment)
+    organization = Organization.objects.get(id=a.org.id)
+
+    assert deadline_services.daily_cycle(organization, today=date(2027, 5, 31))["amendments"] == 0
+    assert deadline_services.daily_cycle(organization, today=date(2027, 6, 1))["amendments"] == 1
+    assert deadline_services.daily_cycle(organization, today=date(2027, 6, 2))["amendments"] == 0
+    after_original_end = deadline_services.daily_cycle(organization, today=date(2028, 1, 1))
+    assert after_original_end["lifecycle"] == 0
+
+    extended = _contract(a.org, a.contract.id)
+    assert extended.effective_end == date(2028, 12, 31)
+    assert extended.lifecycle_status == "active"
+    with tenant_context(a.org.id):
+        notice.refresh_from_db()
+        principal = factories.principal_for_owner(a.org, a.manager)
+        before = lifecycle.current_conditions(principal, a.contract.id, on=date(2027, 5, 31))
+        later = lifecycle.current_conditions(principal, a.contract.id, on=date(2027, 6, 1))
+        applied = AuditEvent.objects.get(action="amendment.end_applied")
+    assert notice.due_date == date(2028, 12, 1)
+    assert (before.effective_end, later.effective_end) == (date(2027, 12, 31), date(2028, 12, 31))
+    assert applied.changes["previous_end"] == "2027-12-31"
+    assert deadline_services.daily_cycle(organization, today=date(2029, 1, 1))["lifecycle"] == 1
+    assert _contract(a.org, a.contract.id).lifecycle_status == "ended"
 
 
 def test_amendment_change_after_approval_invalidates_it() -> None:

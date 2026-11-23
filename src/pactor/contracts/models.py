@@ -329,6 +329,10 @@ class AmendmentChange(TenantModel):
     value = models.CharField(max_length=500, blank=True)
     effective_from = models.DateField()
     created_by = models.ForeignKey("identity.User", on_delete=models.PROTECT, related_name="+")
+    # Novos términos são aplicados ao contrato original uma única vez, quando entram
+    # em vigor; o término substituído permite reconstituir as condições anteriores.
+    applied_at = models.DateTimeField(null=True, blank=True)
+    replaced_end = models.DateField(null=True, blank=True)
 
     def __str__(self) -> str:
         return f"{self.amendment_id}:{self.field}"

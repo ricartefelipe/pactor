@@ -153,3 +153,25 @@ def conditions_at(original: Conditions, changes: Iterable[ConditionChange], on: 
             case ConditionField.DESCRIPTION:
                 current = replace(current, description=str(change.value or ""))
     return current
+
+
+@dataclass(frozen=True, slots=True)
+class EndReplacement:
+    """Troca de término já aplicada ao contrato (renovação ou aditivo)."""
+
+    effective_from: date
+    replaced: date | None
+
+
+def end_in_force(
+    current: date | None, replacements: Iterable[EndReplacement], on: date
+) -> date | None:
+    """Término vigente em ``on``: o atual, desfeitas as trocas que só valem depois da data.
+
+    Trocas são aplicadas em ordem cronológica; a mais antiga posterior a ``on``
+    guarda o término que valia até ela.
+    """
+    later = [r for r in replacements if r.effective_from > on]
+    if not later:
+        return current
+    return min(later, key=lambda r: r.effective_from).replaced

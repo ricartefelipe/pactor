@@ -10,7 +10,7 @@ from __future__ import annotations
 import uuid
 import zoneinfo
 from collections.abc import Sequence
-from datetime import date, datetime
+from datetime import date, datetime, timedelta
 from decimal import Decimal, InvalidOperation
 
 from django.utils import timezone
@@ -25,11 +25,13 @@ from pactor.contracts.lifecycle import (
     ConditionChange,
     ConditionField,
     Conditions,
+    EndReplacement,
     LifecycleAction,
     LifecycleError,
     LifecycleStatus,
     conditions_at,
     due_transition,
+    end_in_force,
     next_status,
     status_after_signature,
 )
@@ -37,6 +39,7 @@ from pactor.contracts.models import AmendmentChange, Contract, LifecycleEvent, L
 from pactor.contracts.selectors import get_visible_contract, require_editable
 from pactor.core.errors import DomainValidationError, InvalidTransitionError
 from pactor.core.tenancy import require_tenant, tenant_context
+from pactor.deadlines.models import RenewalRecord
 from pactor.identity.models import Organization
 from pactor.plans import services as plans
 
@@ -345,14 +348,101 @@ def amendment_changes(contract: Contract) -> Sequence[AmendmentChange]:
     )
 
 
+def apply_due_amendment_ends(organization_id: uuid.UUID, *, today: date) -> list[Contract]:
+    """Leva ao contrato original os novos términos de aditivos assinados que entraram em vigor.
+
+    O término do contrato é o que prazos, renovações e o encerramento automático
+    consultam. Cada alteração é aplicada uma única vez, sobre o término vigente
+    naquele momento, e guarda o término substituído: renovações posteriores
+    continuam valendo e as condições de datas anteriores podem ser reconstituídas.
+    Devolve os contratos cujo término mudou.
+    """
+    changed: dict[uuid.UUID, Contract] = {}
+    with tenant_context(organization_id):
+        due = list(
+            AmendmentChange.objects.select_for_update(of=("self",))
+            .filter(
+                field=ConditionField.EFFECTIVE_END.value,
+                applied_at__isnull=True,
+                effective_from__lte=today,
+                amendment__drafting_status=DraftingStatus.SIGNED,
+            )
+            .order_by("effective_from", "amendment__signed_on", "created_at", "id")
+        )
+        for change in due:
+            parent = changed.get(change.parent_id) or (
+                Contract.objects.select_for_update().get(id=change.parent_id)
+            )
+            parsed = _parse_value(ConditionField.EFFECTIVE_END, change.value)
+            new_end = parsed if isinstance(parsed, date) else None
+            change.applied_at = timezone.now()
+            change.replaced_end = parent.effective_end
+            change.save(update_fields=["applied_at", "replaced_end"])
+            details: dict[str, str | None] = {
+                "amendment_id": str(change.amendment_id),
+                "effective_from": change.effective_from.isoformat(),
+                "previous_end": parent.effective_end.isoformat() if parent.effective_end else None,
+                "new_end": new_end.isoformat() if new_end else None,
+            }
+            starts_after = (
+                new_end is not None
+                and parent.effective_start is not None
+                and new_end < parent.effective_start
+            )
+            if LifecycleStatus(parent.lifecycle_status) not in COUNTS_AS_ACTIVE or starts_after:
+                audit.record(
+                    None,
+                    action="amendment.end_not_applied",
+                    resource_type="contract",
+                    resource_id=parent.id,
+                    changes={**details, "lifecycle_status": parent.lifecycle_status},
+                )
+                continue
+            parent.effective_end = new_end
+            parent.version += 1
+            parent.save(update_fields=["effective_end", "version"])
+            audit.record(
+                None,
+                action="amendment.end_applied",
+                resource_type="contract",
+                resource_id=parent.id,
+                changes=details,
+            )
+            changed[parent.id] = parent
+    return list(changed.values())
+
+
+def _end_replacements(contract: Contract) -> list[EndReplacement]:
+    """Trocas de término já aplicadas: aditivos em vigor e renovações automáticas."""
+    amendments = [
+        EndReplacement(effective_from=c.effective_from, replaced=c.replaced_end)
+        for c in AmendmentChange.objects.filter(
+            organization_id=contract.organization_id,
+            parent=contract,
+            field=ConditionField.EFFECTIVE_END.value,
+            applied_at__isnull=False,
+        )
+    ]
+    renewals = [
+        EndReplacement(effective_from=r.previous_end + timedelta(days=1), replaced=r.previous_end)
+        for r in RenewalRecord.objects.filter(
+            organization_id=contract.organization_id, contract=contract
+        )
+    ]
+    return amendments + renewals
+
+
 def current_conditions(principal: Principal, contract_id: uuid.UUID, *, on: date) -> Conditions:
-    """Condições vigentes em ``on`` a partir do original e dos aditivos assinados."""
+    """Condições vigentes em ``on``: original, renovações e aditivos assinados."""
     contract = get_visible_contract(principal, contract_id)
     original = Conditions(
         total_value=contract.total_value,
-        effective_end=contract.effective_end or contract.planned_end,
+        effective_end=end_in_force(
+            contract.effective_end or contract.planned_end, _end_replacements(contract), on
+        ),
         description="",
     )
+    # Novos términos já aplicados ao contrato entram pela reconstituição acima.
     changes = [
         ConditionChange(
             sequence=index,
@@ -365,7 +455,9 @@ def current_conditions(principal: Principal, contract_id: uuid.UUID, *, on: date
                 organization_id=contract.organization_id,
                 parent=contract,
                 amendment__drafting_status=DraftingStatus.SIGNED,
-            ).order_by("amendment__signed_on", "created_at", "id")
+            )
+            .exclude(field=ConditionField.EFFECTIVE_END.value, applied_at__isnull=False)
+            .order_by("amendment__signed_on", "created_at", "id")
         )
     ]
     return conditions_at(original, changes, on)
