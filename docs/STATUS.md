@@ -7,7 +7,6 @@ dependência real; sem essa marca, o item tem código e testes locais.
 
 | Área | Itens | Evidência |
 | --- | --- | --- |
-| 0.3.0 | 2026-11-23 | Nova identidade visual (Inter, ícones, barra lateral, painel com indicadores, entrada em duas colunas) e runbook de backup dos documentos corrigido |
 | Fundação | Configuração tipada, papéis de banco, health checks, erros da API, logs e métricas | CI do PR #1 |
 | Tenancy | RLS forçada, FKs compostas, contexto local à transação, reutilização de conexão e de worker | `tests/integration/test_tenant_isolation.py`, `test_outbox.py` |
 | Identidade | Organizações, departamentos, equipes, associações, convites, troca de organização, revogação imediata, último proprietário | `tests/integration/test_identity.py`, `test_rejections.py` |
@@ -53,6 +52,7 @@ dependência real; sem essa marca, o item tem código e testes locais.
 
 | Versão | Data | Conteúdo |
 | --- | --- | --- |
+| 0.3.0 | 2026-11-23 | Nova identidade visual (Inter, ícones, barra lateral, painel com indicadores, entrada em duas colunas) e runbook de backup dos documentos corrigido |
 | 0.2.0 | 2026-11-23 | QR code no TOTP, `verify_documents`, recuperação a um ponto no tempo exercitada, testes no navegador de todas as telas, checks de frontend e ponta a ponta obrigatórios |
 | 0.1.0 | 2026-11-23 | Primeira versão: todas as áreas acima, aplicação web e roteiro demonstrativo no navegador |
 
