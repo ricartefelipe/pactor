@@ -61,6 +61,7 @@ dependência real; sem essa marca, o item tem código e testes locais.
 
 | Data | Comando | Resultado |
 | --- | --- | --- |
+| 2026-11-23 | Revisão de código da versão 0.3.1 (`/code-review` sobre `release/0.3.1`) | 3 achados (2 importantes: padrões do `.dockerignore` válidos só na raiz e `.env` de subpastas no build; 1 menor: dumps em texto puro); corrigidos e conferidos com build real do contexto |
 | 2026-11-23 | Revisão de código da versão 0.3.0 (`/code-review` sobre `release/0.3.0`) | 7 achados (1 importante: foco dos campos invisível em cores forçadas; 6 menores: linha da versão na tabela errada, iniciais com partículas do nome, abas cortadas, botões-link sem sublinhado, aviso de carregamento sob o topo no celular, barras do painel lidas em duplicidade); todos corrigidos |
 | 2026-11-23 | `make frontend-check` e `make e2e` (release 0.3.0, após a revisão) | 42 testes Vitest, `npm audit` sem vulnerabilidades, build; E2E local: 5 testes em 4,0 min, com verificações axe-core |
 | 2026-11-23 | Revisão de código da versão 0.2.0 (`/code-review` sobre `release/0.2.0`) | 7 achados (2 importantes: corrida na espera do PITR e fonte/caráter de índice ignorados em série existente; 5 menores: espera do antivírus e CSV sem verificação real no E2E, organização inexistente e arquivo adulterado na conferência, vírgula decimal); todos corrigidos com teste |
