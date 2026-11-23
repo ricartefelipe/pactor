@@ -7,6 +7,7 @@ dependência real; sem essa marca, o item tem código e testes locais.
 
 | Área | Itens | Evidência |
 | --- | --- | --- |
+| 0.3.0 | 2026-11-23 | Nova identidade visual (Inter, ícones, barra lateral, painel com indicadores, entrada em duas colunas) e runbook de backup dos documentos corrigido |
 | Fundação | Configuração tipada, papéis de banco, health checks, erros da API, logs e métricas | CI do PR #1 |
 | Tenancy | RLS forçada, FKs compostas, contexto local à transação, reutilização de conexão e de worker | `tests/integration/test_tenant_isolation.py`, `test_outbox.py` |
 | Identidade | Organizações, departamentos, equipes, associações, convites, troca de organização, revogação imediata, último proprietário | `tests/integration/test_identity.py`, `test_rejections.py` |
