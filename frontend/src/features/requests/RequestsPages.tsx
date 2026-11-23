@@ -27,7 +27,7 @@ import { LoadMore } from "../../components/LoadMore";
 import { useNotify } from "../../components/notifications";
 import { EmptyState, QueryView, WhenReady } from "../../components/states";
 import { Badge, Button, DefinitionList, PageHeader, Section, Table } from "../../components/ui";
-import { formatDate, formatDateTime, formatMoney } from "../../lib/format";
+import { decimalText, formatDate, formatDateTime, formatMoney } from "../../lib/format";
 import {
   CONFIDENTIALITY,
   CONTRACT_TYPE,
@@ -163,7 +163,7 @@ export function NewRequestPage() {
       priority,
       counterparty_id: values.counterparty_id ?? null,
       department_id: values.department_id ?? null,
-      estimated_value: values.estimated_value ?? null,
+      estimated_value: values.estimated_value ? decimalText(values.estimated_value) : null,
       desired_start: values.desired_start ?? null,
       desired_end: values.desired_end ?? null,
     });
@@ -210,8 +210,8 @@ export function NewRequestPage() {
           label="Valor estimado (R$)"
           name="estimated_value"
           inputMode="decimal"
-          pattern="[0-9]+([.][0-9]{1,2})?"
-          hint="Use ponto para os centavos, ex.: 1500.00"
+          pattern="[0-9]+([.,][0-9]{1,2})?"
+          hint="Sem separador de milhar, ex.: 1500,00"
           error={errors.estimated_value}
         />
         <TextField

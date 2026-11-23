@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import io
+import uuid
 from collections.abc import Iterator
 from pathlib import Path
 
@@ -13,9 +14,9 @@ from django.test import override_settings
 from pactor.access.policies import Role
 from pactor.core.tenancy import tenant_context
 from pactor.files import services as files
-from pactor.files.models import FilePurpose, StoredFile
+from pactor.files.models import FilePurpose, FileStatus, StoredFile
 from pactor.identity.models import Organization
-from pactor.integrity import Problem, Source, verify_documents
+from pactor.integrity import Problem, Source, UnknownOrganizationsError, verify_documents
 from pactor.signatures.models import EnvelopeDocument
 from tests import factories, file_samples
 from tests.integration.test_signatures import _approved, _dispatched
@@ -92,3 +93,25 @@ def test_missing_preview_is_reported(media: Path) -> None:
         StoredFile.objects.filter(id=stored.id).update(preview_path="files/inexistente.pdf")
     report = verify_documents([org.id])
     assert [(f.source, f.problem) for f in report.findings] == [(Source.PREVIEW, Problem.MISSING)]
+
+
+def test_unknown_organization_is_an_error_not_an_empty_success(media: Path) -> None:
+    unknown = uuid.uuid4()
+    with pytest.raises(UnknownOrganizationsError):
+        verify_documents([unknown])
+    with pytest.raises(CommandError, match="Organização inexistente"):
+        call_command("verify_documents", "--organizacao", str(unknown), stdout=io.StringIO())
+
+
+def test_file_rejected_for_altered_bytes_is_only_checked_for_presence(media: Path) -> None:
+    org, stored = _stored_file()
+    with tenant_context(org.id):
+        StoredFile.objects.filter(id=stored.id).update(
+            status=FileStatus.REJECTED, rejection_reason="hash_mismatch"
+        )
+    (media / stored.storage_path).write_bytes(b"bytes alterados na quarentena")
+    assert verify_documents([org.id]).ok
+    (media / stored.storage_path).unlink()
+    assert [(f.source, f.problem) for f in verify_documents([org.id]).findings] == [
+        (Source.FILE, Problem.MISSING)
+    ]

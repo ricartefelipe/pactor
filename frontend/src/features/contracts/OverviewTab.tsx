@@ -8,7 +8,7 @@ import { FormError, SelectField, TextField, formText } from "../../components/fo
 import { useNotify } from "../../components/notifications";
 import { WhenReady } from "../../components/states";
 import { Button, DefinitionList, Section } from "../../components/ui";
-import { formatDate, formatDateTime, formatMoney } from "../../lib/format";
+import { decimalText, formatDate, formatDateTime, formatMoney } from "../../lib/format";
 import { CONFIDENTIALITY, CONTRACT_TYPE, enumValue, options, PARTY_ROLE } from "../../lib/labels";
 import { useContractContext } from "./ContractLayout";
 
@@ -38,7 +38,7 @@ export function OverviewTab() {
       department_id: values.department_id ?? null,
       confidentiality:
         enumValue(CONFIDENTIALITY, values.confidentiality) ?? contract.confidentiality,
-      total_value: values.total_value ?? null,
+      total_value: values.total_value ? decimalText(values.total_value) : null,
       planned_start: values.planned_start ?? null,
       planned_end: values.planned_end ?? null,
     });

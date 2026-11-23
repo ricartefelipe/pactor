@@ -2,6 +2,8 @@
  * Leitura defensiva da definição de um modelo (JSON validado pelo servidor).
  * Usada só para montar o formulário de geração; o servidor revalida tudo.
  */
+import { decimalText } from "./format";
+
 export type FieldType = "text" | "date" | "decimal" | "boolean" | "choice";
 
 export interface TemplateField {
@@ -54,7 +56,9 @@ export function generationValues(
       continue;
     }
     const raw = form.get(field.key);
-    if (typeof raw === "string" && raw.trim() !== "") values[field.key] = raw.trim();
+    if (typeof raw === "string" && raw.trim() !== "") {
+      values[field.key] = field.type === "decimal" ? decimalText(raw) : raw.trim();
+    }
   }
   return values;
 }

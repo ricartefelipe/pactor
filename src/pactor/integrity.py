@@ -16,9 +16,22 @@ from enum import StrEnum
 from django.core.files.storage import default_storage
 
 from pactor.core.tenancy import tenant_context
-from pactor.files.models import StoredFile
+from pactor.files.models import FileStatus, StoredFile
 from pactor.identity.models import Organization
 from pactor.signatures.models import EnvelopeDocument
+
+
+class UnknownOrganizationsError(LookupError):
+    """Organizações pedidas que não existem (evita uma conferência vazia dada como ok)."""
+
+    def __init__(self, missing: Iterable[uuid.UUID]) -> None:
+        self.missing = sorted(missing, key=str)
+        super().__init__(", ".join(str(m) for m in self.missing))
+
+
+# Arquivos recusados no recebimento porque os bytes mudaram durante a quarentena: a
+# divergência já foi detectada e registrada, e eles nunca são servidos.
+_KNOWN_ALTERED = "hash_mismatch"
 
 
 class Problem(StrEnum):
@@ -75,6 +88,10 @@ def _digest(path: str) -> tuple[str, int] | None:
 
 def _expected_for(organization_id: uuid.UUID) -> Iterator[_Expected]:
     for stored in StoredFile.objects.filter(organization_id=organization_id).order_by("id"):
+        if stored.status == FileStatus.REJECTED and stored.rejection_reason == _KNOWN_ALTERED:
+            # Só a presença é conferida: o hash diverge por definição.
+            yield _Expected(Source.FILE, stored.id, stored.storage_path, None, None)
+            continue
         yield _Expected(Source.FILE, stored.id, stored.storage_path, stored.sha256, stored.size)
         if stored.preview_path:
             yield _Expected(Source.PREVIEW, stored.id, stored.preview_path, None, None)
@@ -107,7 +124,11 @@ def verify_documents(organization_ids: Iterable[uuid.UUID] | None = None) -> Rep
     """
     organizations = Organization.objects.order_by("id").values_list("id", flat=True)
     if organization_ids is not None:
-        organizations = organizations.filter(id__in=list(organization_ids))
+        requested = set(organization_ids)
+        organizations = organizations.filter(id__in=requested)
+        missing = requested - set(organizations)
+        if missing:
+            raise UnknownOrganizationsError(missing)
     report = Report()
     for organization_id in organizations:
         with tenant_context(organization_id):

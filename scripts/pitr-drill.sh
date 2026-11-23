@@ -24,12 +24,16 @@ cleanup() {
 }
 trap cleanup EXIT
 
+# Pronto = o servidor definitivo aceita consultas no banco pactor via TCP. Durante a
+# inicialização, a imagem oficial roda um servidor temporário só no socket local.
 wait_ready() {
-  for _ in $(seq 1 60); do
-    if docker exec "$1" pg_isready -U postgres -q 2>/dev/null; then return 0; fi
+  for _ in $(seq 1 90); do
+    if docker exec "$1" psql -h 127.0.0.1 -U postgres -d pactor -Atqc "SELECT 1" >/dev/null 2>&1; then
+      return 0
+    fi
     sleep 1
   done
-  docker logs "$1" >&2
+  docker logs --tail 30 "$1" >&2
   return 1
 }
 
@@ -87,7 +91,7 @@ for _ in $(seq 1 60); do
     docker logs --tail 15 "$RESTORED" >&2
     exit 1
   fi
-  if docker exec "$RESTORED" pg_isready -U postgres -q 2>/dev/null \
+  if docker exec "$RESTORED" pg_isready -h 127.0.0.1 -U postgres -q 2>/dev/null \
     && [[ "$(sql "$RESTORED" "SELECT pg_is_in_recovery()" 2>/dev/null)" == "f" ]]; then
     break
   fi

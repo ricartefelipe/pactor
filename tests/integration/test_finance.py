@@ -242,3 +242,34 @@ def test_finance_permissions_and_isolation() -> None:
         content_type=JSON,
     )
     assert too_many.status_code == 400
+
+
+def test_index_value_cannot_change_the_series_source_or_kind() -> None:
+    org, _, finance, _ = _setup()
+    client = factories.client_for(finance, org)
+    official = {
+        "series_name": "IPCA (fictício)",
+        "index_source": "Fonte oficial fictícia",
+        "period": "2027-01-01",
+        "rate_percent": "0.5",
+        "source_note": "Nota",
+        "is_demonstrative": False,
+    }
+    assert client.post("/api/v1/indexes", official, content_type=JSON).status_code == 201
+    as_demo = client.post(
+        "/api/v1/indexes",
+        {**official, "period": "2027-02-01", "is_demonstrative": True},
+        content_type=JSON,
+    )
+    assert as_demo.status_code == 409
+    assert "valores oficiais" in as_demo.json()["error"]["message"]
+    other_source = client.post(
+        "/api/v1/indexes",
+        {**official, "period": "2027-02-01", "index_source": "Outra fonte"},
+        content_type=JSON,
+    )
+    assert other_source.status_code == 409
+    same = client.post("/api/v1/indexes", {**official, "period": "2027-02-01"}, content_type=JSON)
+    assert same.status_code == 201
+    listed = client.get("/api/v1/indexes").json()
+    assert {value["is_demonstrative"] for value in listed} == {False}
