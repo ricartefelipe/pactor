@@ -12,9 +12,12 @@ from collections.abc import Callable
 from django.conf import settings
 from django.core.cache import cache
 from django.db import connection, transaction
-from django.http import HttpRequest, JsonResponse
+from django.http import HttpRequest, HttpResponse, JsonResponse
 from django.views.decorators.http import require_GET
 from kombu import Connection
+from prometheus_client import CONTENT_TYPE_LATEST
+
+from pactor.core import metrics as exporter
 
 logger = logging.getLogger(__name__)
 
@@ -71,3 +74,14 @@ def ready(_request: HttpRequest) -> JsonResponse:
         {"status": "ok" if healthy else "degraded", "checks": results},
         status=200 if healthy else 503,
     )
+
+
+@transaction.non_atomic_requests
+@require_GET
+def metrics(request: HttpRequest) -> HttpResponse:
+    """Métricas Prometheus. Exige token próprio; sem token configurado, inexistente."""
+    if not settings.PACTOR_METRICS_TOKEN:
+        return HttpResponse(status=404)
+    if not exporter.authorized(request.headers.get("Authorization", "")):
+        return HttpResponse(status=401, headers={"WWW-Authenticate": "Bearer"})
+    return HttpResponse(exporter.exposition(), content_type=CONTENT_TYPE_LATEST)

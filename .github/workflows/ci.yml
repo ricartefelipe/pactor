@@ -152,6 +152,7 @@ jobs:
           POSTGRES_USER: postgres
           PACTOR_OWNER_PASSWORD: owner-local
           PACTOR_APP_PASSWORD: app-local
+          PACTOR_BACKUP_PASSWORD: backup-local
         run: sh docker/postgres/10-roles.sh
       - name: Migrations em banco limpo
         run: uv run python manage.py migrate --noinput

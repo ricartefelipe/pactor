@@ -38,6 +38,9 @@ dependência real; sem essa marca, o item tem código e testes locais.
 | Valores | Decimal/BRL, recusa de float e não finitos, rateio exato, meio-par, confirmações e reajustes imutáveis, resumo | `tests/unit/test_money.py`, `tests/integration/test_finance.py` |
 | Pesquisa | Permissões diferentes, facetas/contagens/sugestões/exportação sem vazamento, indexação atrasada, anexos não liberados fora do índice, isolamento | `tests/integration/test_search.py` |
 | Integrações OAuth | Token real via /o/token/, tenant do cliente, escopos restritivos, visibilidade, revogação, token só no cabeçalho, MFA para gestão | `tests/integration/test_integrations.py` |
+| Operação | `/metrics` com token, métricas de negócio somadas por organização sem identificadores em labels, modo multiprocesso, reprocessamento autorizado e isolado, correlação de logs por contrato, revisão e envelope | `tests/integration/test_operations.py`, `test_log_correlation.py`, `tests/unit/test_gunicorn_hooks.py` |
+| Seed de demonstração | Duas organizações fictícias, idempotente, TOTP de demonstração, recusado em produção | `tests/integration/test_demo_seed.py`; executado duas vezes no banco local |
+| Backup e restauração | `pg_dump` com `pactor_backup`, `pg_restore` em banco novo, conferência de contagens, donos, RLS e triggers; volume de mídia arquivado e restaurado | `docs/RUNBOOKS.md` (exercitado em 2026-11-23) |
 | Concorrência de revisões | Edição simultânea de rascunho e publicação simultânea | `tests/concurrency/test_revision_races.py` |
 
 ## Em andamento
@@ -48,6 +51,8 @@ dependência real; sem essa marca, o item tem código e testes locais.
 
 | Data | Comando | Resultado |
 | --- | --- | --- |
+| 2026-11-23 | `make lock-check lint typecheck audit bandit migrations-check openapi-check` (operação, métricas e seed) | Sem apontamentos |
+| 2026-11-23 | `make test` (operação, métricas e seed) | 553 testes aprovados; gate core 98,51% / 92,81%; gate crítico 98,01% / 91,59% |
 | 2026-11-23 | `make test` (integrações OAuth) | 531 testes aprovados; gate core 98,49% / 92,86%; gate crítico 98,05% / 91,57% |
 | 2026-11-23 | `make test` (pesquisa e relatórios) | 525 testes aprovados; gate core 98,55% / 93,09%; gate crítico 98,10% / 91,77% |
 | 2026-11-23 | `make test` (valores e compromissos) | 518 testes aprovados; gate core 98,55% / 93,00%; gate crítico 98,11% / 91,82% |
@@ -64,7 +69,8 @@ dependência real; sem essa marca, o item tem código e testes locais.
 ## Pendências reais
 
 - Integração Docusign real (adaptador pronto; requer credenciais de demonstração para `make test-external`).
-- Frontend, vigência, obrigações, prazos, valores, arquivos,
-  pesquisa, integrações OAuth e frontend.
+- Frontend web e testes ponta a ponta no navegador.
+- Recuperação a um ponto no tempo (WAL) e conferência de hashes após a restauração: só
+  procedimentos escritos (`RUNBOOKS.md`).
 - Teste de perda de worker durante a execução (redelivery com `acks_late`) ainda não automatizado.
 - gitleaks e Trivy executados apenas na CI (não disponíveis no ambiente local).

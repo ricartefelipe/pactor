@@ -237,6 +237,7 @@ class ContractPagination(StablePagination):
 class ContractViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, TenantViewSet):
     serializer_class = ContractSerializer
     pagination_class = ContractPagination
+    pk_log_key = "contract_id"
     action_permissions: ClassVar[dict[str, Permission | None]] = {
         # Leitura depende da visibilidade por contrato (vínculos incluídos),
         # não apenas do papel; por isso não exige `contracts.read` aqui.

@@ -8,6 +8,7 @@ Formato baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e
 ### Corrigido
 
 - Agendamento periódico do ciclo de vigência ausente; agora coberto por teste de guarda.
+- Backup do banco impossível com RLS forçada; papel `pactor_backup` dedicado ao `pg_dump`.
 
 ### Adicionado
 
@@ -55,6 +56,11 @@ Formato baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e
   com limites de recursos (macros, referências externas, caminhos inválidos, bombas de
   compressão, conteúdo ativo), extração de texto, prévia, liberação e downloads autorizados.
 - Anexos de contrato incluídos no fingerprint da revisão.
+- Endpoint `/metrics` protegido por token, com métricas de outbox, consumidores, assinaturas,
+  arquivos, envelopes, alertas e consultas por requisição, agregadas entre workers do Gunicorn.
+- Reprocessamento autorizado e auditado de falhas de consumidores e de eventos esgotados.
+- Comando `seed_demo` idempotente com duas organizações fictícias.
+- Runbooks com backup e restauração do banco e dos documentos exercitados, e roteiro demonstrativo.
 - Prazos com regra explícita (dias corridos/úteis, feriados configurados, ajuste, fim de mês,
   bissextos), renovação automática somente autorizada e registrada, alertas idempotentes e
   recuperáveis no fuso da organização, e calendário consolidado.

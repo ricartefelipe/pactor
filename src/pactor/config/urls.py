@@ -10,6 +10,7 @@ from pactor.audit.api import AuditEventViewSet
 from pactor.contracts import lifecycle_api
 from pactor.contracts.api import ContractViewSet
 from pactor.core import health
+from pactor.core.api import operations
 from pactor.counterparties.api import CounterpartyViewSet
 from pactor.deadlines import api as deadlines
 from pactor.drafting.api import TemplateViewSet
@@ -94,6 +95,17 @@ api_v1 = [
     path(
         "reports/contracts.csv", search.ContractsExportView.as_view(), name="reports-contracts-csv"
     ),
+    path("operations/failures", operations.FailuresView.as_view(), name="operations-failures"),
+    path(
+        "operations/failures/<uuid:failure_id>/requeue",
+        operations.RequeueFailureView.as_view(),
+        name="operations-requeue",
+    ),
+    path(
+        "operations/dead-events/requeue",
+        operations.RequeueDeadEventsView.as_view(),
+        name="operations-dead",
+    ),
     path("calendar", deadlines.CalendarView.as_view(), name="calendar"),
     path("alerts", deadlines.AlertsView.as_view(), name="alerts"),
     path("holiday-calendars", deadlines.HolidayCalendarsView.as_view(), name="holiday-calendars"),
@@ -162,6 +174,7 @@ api_v1 = [
 urlpatterns = [
     path("health/live", health.live, name="health-live"),
     path("health/ready", health.ready, name="health-ready"),
+    path("metrics", health.metrics, name="metrics"),
     path("_allauth/", include("allauth.headless.urls")),
     # Somente os endpoints de token do servidor OAuth; a gestão de aplicações é pela API do Pactor.
     path("o/token/", oauth_views.TokenView.as_view(), name="oauth-token"),

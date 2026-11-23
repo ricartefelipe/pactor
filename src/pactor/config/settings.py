@@ -250,6 +250,9 @@ CONTENT_SECURITY_POLICY = {
     },
 }
 PACTOR_ADMIN_PATH = env_str("PACTOR_ADMIN_PATH", "admin/")
+# Métricas: endpoint /metrics protegido por token próprio (vazio = desabilitado).
+PACTOR_METRICS_TOKEN = env_str("PACTOR_METRICS_TOKEN", "")
+PROMETHEUS_MULTIPROC_DIR = env_str("PROMETHEUS_MULTIPROC_DIR", "")
 
 # ---------------------------------------------------------------------------
 # Internacionalização

@@ -28,6 +28,7 @@ services:
       POSTGRES_DB: postgres
       PACTOR_OWNER_PASSWORD: ${PACTOR_OWNER_PASSWORD}
       PACTOR_APP_PASSWORD: ${PACTOR_APP_PASSWORD}
+      PACTOR_BACKUP_PASSWORD: ${PACTOR_BACKUP_PASSWORD}
     volumes:
       - postgres-data:/var/lib/postgresql/data
       - ./docker/postgres/10-roles.sh:/docker-entrypoint-initdb.d/10-roles.sh:ro
@@ -102,6 +103,10 @@ services:
 
   web:
     <<: *app
+    environment:
+      <<: *app-env
+      # Séries HTTP compartilhadas entre os workers do Gunicorn (somente no web).
+      PROMETHEUS_MULTIPROC_DIR: /tmp/pactor-metrics
     ports:
       - "127.0.0.1:8000:8000"
     healthcheck:
