@@ -421,3 +421,13 @@ def test_create_organization_via_api_starts_trial() -> None:
     )
     assert response.status_code == 201
     assert response.json()["active_organization"]["roles"] == ["owner"]
+
+
+def test_principal_includes_departments_and_teams_from_request() -> None:
+    org, _ = factories.organization()
+    dept, team = factories.department(org), factories.team(org)
+    person = factories.member(org, [Role.REVIEWER], departments=[dept], teams=[team])
+    response = factories.client_for(person, org).get("/api/v1/departments")
+    assert response.status_code == 200
+    with tenant_context(org.id):
+        assert factories.principal(org, person).department_ids == {dept.id}
