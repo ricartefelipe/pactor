@@ -6,6 +6,7 @@ from rest_framework.routers import SimpleRouter
 
 from pactor.approvals.api import ApprovalRoundViewSet, DelegationViewSet, WorkflowViewSet
 from pactor.audit.api import AuditEventViewSet
+from pactor.contracts import lifecycle_api
 from pactor.contracts.api import ContractViewSet
 from pactor.core import health
 from pactor.counterparties.api import CounterpartyViewSet
@@ -38,6 +39,26 @@ api_v1 = [
     path("invitations/accept", identity.AcceptInvitationView.as_view(), name="invitation-accept"),
     path("subscription", identity.SubscriptionView.as_view(), name="subscription"),
     path("schema", SpectacularAPIView.as_view(), name="api-schema"),
+    path(
+        "contracts/<uuid:contract_id>/lifecycle",
+        lifecycle_api.LifecycleView.as_view(),
+        name="contract-lifecycle",
+    ),
+    path(
+        "contracts/<uuid:contract_id>/lifecycle/<str:operation>",
+        lifecycle_api.LifecycleActionView.as_view(),
+        name="contract-lifecycle-action",
+    ),
+    path(
+        "contracts/<uuid:contract_id>/amendment-changes",
+        lifecycle_api.AmendmentChangesView.as_view(),
+        name="contract-amendment-changes",
+    ),
+    path(
+        "contracts/<uuid:contract_id>/conditions",
+        lifecycle_api.ConditionsView.as_view(),
+        name="contract-conditions",
+    ),
     *router.urls,
 ]
 

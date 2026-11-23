@@ -28,7 +28,8 @@ from pactor.access.authorization import authorize
 from pactor.access.policies import Permission, Principal
 from pactor.approvals.services import require_approved_for_signature
 from pactor.audit import services as audit
-from pactor.contracts.domain import DraftingStatus
+from pactor.contracts import lifecycle_services as lifecycle
+from pactor.contracts.domain import ContractType, DraftingStatus
 from pactor.contracts.models import Contract
 from pactor.contracts.pdf import PdfDocument, render_pdf
 from pactor.contracts.selectors import get_visible_contract
@@ -163,6 +164,8 @@ def send_for_signature(
             details={"approved_fingerprint": contract.approved_fingerprint},
         )
     validated = _validated_signers(signers)
+    if contract.contract_type != ContractType.AMENDMENT:
+        lifecycle.ensure_capacity_for_new_active()
     provider = get_provider(provider_name)
     transition(contract, DraftingStatus.SIGNING)
     document = render_revision(contract)
@@ -445,6 +448,10 @@ def apply_provider_state(envelope: Envelope, state: ProviderEnvelopeState) -> Ev
     if target is EnvelopeState.COMPLETED:
         envelope.completed_at = state.changed_at
         transition(contract, DraftingStatus.SIGNED)
+        organization = Organization.objects.get(id=contract.organization_id)
+        lifecycle.register_signature(
+            contract, signed_on=lifecycle.local_today(organization, now=state.changed_at)
+        )
         outbox.emit(
             "signatures.envelope_completed",
             {"envelope_id": str(envelope.id), "contract_id": str(contract.id)},
