@@ -65,11 +65,7 @@ function Distribution({
           {entries.map(([status, value]) => (
             <li key={status}>
               <span className="distribution__label">{labelOf(labels, status)}</span>
-              <progress
-                max={total}
-                value={value}
-                aria-label={`${labelOf(labels, status)}: ${String(value)} de ${String(total)}`}
-              />
+              <progress max={total} value={value} aria-hidden="true" />
               <strong>{value}</strong>
             </li>
           ))}

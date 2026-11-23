@@ -5,6 +5,10 @@ Formato baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e
 
 ## [Não lançado]
 
+## [0.3.0] - 2026-11-23
+
+Nova identidade visual da aplicação e correção do runbook de backup dos documentos.
+
 ### Alterado
 
 - Nova identidade visual: fonte Inter empacotada (compatível com a CSP), paleta índigo e
@@ -153,6 +157,7 @@ no navegador.
 - Autenticação por e-mail com confirmação e MFA (django-allauth headless).
 - Pipeline de CI com lockfile, Ruff, mypy, pip-audit, Bandit, gitleaks, testes, gates de cobertura e análise da imagem.
 
-[Não lançado]: https://github.com/ricartefelipe/pactor/compare/v0.2.0...develop
+[Não lançado]: https://github.com/ricartefelipe/pactor/compare/v0.3.0...develop
+[0.3.0]: https://github.com/ricartefelipe/pactor/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/ricartefelipe/pactor/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/ricartefelipe/pactor/releases/tag/v0.1.0
