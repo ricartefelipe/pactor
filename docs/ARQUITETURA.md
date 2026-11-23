@@ -346,15 +346,27 @@ stateDiagram-v2
   assinatura (`contract_lifecycle_requires_signature`).
 - Datas de vigência são locais da organização (`zoneinfo`, fuso configurado) e os limites são
   inclusivos: o contrato vale do dia de início ao dia de término. Término vazio = indeterminado.
-- O agendador (`pactor.deadlines.daily_cycle`, de hora em hora, após as renovações automáticas) é idempotente e recupera
-  indisponibilidades: se início e término já passaram, registra as duas transições.
+- O agendador (`pactor.deadlines.daily_cycle`, de hora em hora) aplica, nesta ordem, os novos
+  términos de aditivos em vigor, as renovações automáticas e as transições de vigência. É
+  idempotente e recupera indisponibilidades: se início e término já passaram, registra as duas
+  transições.
 - Ações manuais (suspender, retomar, rescindir, arquivar) exigem permissão, justificativa e data
   de efeito, e geram histórico somente-inserção (`LifecycleEvent`) e auditoria.
 - **Aditivos** são contratos do tipo `amendment` ligados ao principal. Suas alterações
   (`AmendmentChange`: valor total, término, descrição) fazem parte do snapshot aprovado e
-  assinado do aditivo e só valem depois da assinatura. O contrato original nunca é reescrito:
-  `conditions_at` aplica, em ordem (data de efeito, ordem de registro), as alterações efetivas
-  na data consultada.
+  assinado do aditivo e só valem depois da assinatura. O texto do contrato original nunca é
+  reescrito: `conditions_at` aplica, em ordem (data de efeito, ordem de registro), as alterações
+  efetivas na data consultada.
+- **Término vigente**: prazos, renovações, encerramento e pesquisa usam o término do contrato.
+  Quando a alteração de término de um aditivo assinado entra em vigor, o ciclo diário a aplica
+  ao contrato uma única vez, guarda o término substituído e recalcula os prazos. A consulta de
+  condições reconstitui o término de qualquer data a partir das renovações e dos aditivos já
+  aplicados.
+- **Renovação automática**: cada termo é calculado a partir do término-base da série
+  (base + k × prazo), sem acumular o ajuste de fim de mês.
+- **Aprovação e dados do contrato**: a revisão aprova conteúdo, metadados e anexos. Se dados
+  ou anexos mudarem depois da publicação, a revisão não pode ser enviada para aprovação;
+  é preciso publicar uma nova revisão.
 - **Limite do plano**: contratos aguardando início, vigentes, suspensos ou em assinatura contam
   como ativos; o envio para assinatura é bloqueado ao exceder o limite.
 
