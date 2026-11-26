@@ -5,6 +5,20 @@ Formato baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e
 
 ## [Não lançado]
 
+### Adicionado
+
+- `PACTOR_TRUSTED_PROXY_COUNT`: atrás de um proxy reverso, os limites por IP do login e da
+  API passam a contar o IP do cliente, e não o do proxy.
+- `PACTOR_LOGIN_FAILED_RATE`: limite de senhas erradas configurável, para ambientes com
+  contas compartilhadas.
+
+### Corrigido
+
+- Sem proxy declarado, a API deixa de identificar o cliente por um `X-Forwarded-For`
+  enviado por ele mesmo, que permitia escapar do limite de requisições anônimas.
+- Método sem ação na rota (por exemplo, `PATCH /api/v1/members/directory`) e `OPTIONS`
+  respondiam 500; agora respondem 405.
+
 ## [0.3.1] - 2026-11-23
 
 ### Segurança
