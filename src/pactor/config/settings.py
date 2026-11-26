@@ -11,7 +11,14 @@ from pathlib import Path
 
 import django_stubs_ext
 
-from pactor.config.env import ConfigurationError, env_bool, env_int, env_list, env_str
+from pactor.config.env import (
+    ConfigurationError,
+    env_bool,
+    env_int,
+    env_list,
+    env_rate_limits,
+    env_str,
+)
 
 # Torna classes genéricas do Django (ex.: ModelAdmin[Model]) subscritáveis
 # em tempo de execução, conforme os stubs usados na verificação de tipos.
@@ -176,9 +183,21 @@ ACCOUNT_UNIQUE_EMAIL = True
 ACCOUNT_PREVENT_ENUMERATION = True
 ACCOUNT_LOGOUT_ON_PASSWORD_CHANGE = True
 ACCOUNT_EMAIL_SUBJECT_PREFIX = "[Pactor] "
+# Proxies reversos à frente da aplicação que reescrevem o X-Forwarded-For (ex.: 1 atrás
+# de um Caddy ou nginx). Com 0, os limites por IP usam o endereço da conexão e ignoram o
+# cabeçalho, que o cliente poderia forjar; atrás de um proxy, deixar 0 faria todos os
+# clientes compartilharem o IP dele (um único cliente esgotaria o limite de todos). O valor
+# precisa valer para todo caminho até a aplicação: uma requisição com menos entradas no
+# X-Forwarded-For do que o declarado é recusada pelo allauth.
+TRUSTED_PROXY_COUNT = env_int("PACTOR_TRUSTED_PROXY_COUNT", 0)
+if TRUSTED_PROXY_COUNT < 0:
+    raise ConfigurationError("PACTOR_TRUSTED_PROXY_COUNT não pode ser negativo.")
+ALLAUTH_TRUSTED_PROXY_COUNT = TRUSTED_PROXY_COUNT
 ACCOUNT_RATE_LIMITS = {
     "login": "30/m/ip",
-    "login_failed": "10/m/ip,5/5m/key",
+    # O limite por conta ("/key") bloqueia o e-mail para todos; ambientes com contas
+    # compartilhadas (demonstração pública) podem deixar só o limite por IP.
+    "login_failed": env_rate_limits("PACTOR_LOGIN_FAILED_RATE", "10/m/ip,5/5m/key"),
     "signup": "10/h/ip",
     # Bandit B105: "reset_password" nomeia um limite de taxa, não uma credencial.
     "reset_password": "10/m/ip,5/m/key",  # nosec B105
@@ -300,6 +319,8 @@ REST_FRAMEWORK = {
         "anon": env_str("PACTOR_THROTTLE_ANON", "30/minute"),
         "user": env_str("PACTOR_THROTTLE_USER", "600/minute"),
     },
+    # Identifica o cliente pelo X-Forwarded-For só com proxies confiáveis declarados.
+    "NUM_PROXIES": TRUSTED_PROXY_COUNT,
     "TEST_REQUEST_DEFAULT_FORMAT": "json",
 }
 SPECTACULAR_SETTINGS = {
