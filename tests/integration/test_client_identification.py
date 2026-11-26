@@ -95,3 +95,22 @@ def test_methods_without_handler_answer_405_instead_of_failing(method: str) -> N
     response = getattr(client, method)("/api/v1/members/directory", content_type="application/json")
     assert response.status_code == 405
     assert response.json()["error"]["code"] == "method_not_allowed"
+
+
+@pytest.mark.parametrize("method", ["LIST", "SETUP", "DISPATCH"])
+def test_methods_outside_http_answer_405_even_when_named_like_view_attributes(method: str) -> None:
+    org, _ = factories.organization()
+    client = factories.client_for(factories.member(org, [Role.CONTRACT_MANAGER]), org)
+    response = client.generic(method, "/api/v1/members/directory")
+    assert response.status_code == 405
+    assert response.json()["error"]["code"] == "method_not_allowed"
+
+
+@pytest.mark.parametrize("path", ["/api/v1/search?q=contrato", "/api/v1/members/directory"])
+def test_head_uses_the_get_permission(path: str) -> None:
+    org, _ = factories.organization()
+    client = factories.client_for(factories.member(org, [Role.CONTRACT_MANAGER]), org)
+    assert client.get(path).status_code == 200
+    head = client.head(path)
+    assert head.status_code == 200
+    assert head.content == b""
