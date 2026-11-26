@@ -5,6 +5,10 @@ Formato baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e
 
 ## [Não lançado]
 
+## [0.3.2] - 2026-11-26
+
+Implantação atrás de proxy reverso: limites por IP contam o cliente, e não o proxy.
+
 ### Adicionado
 
 - `PACTOR_TRUSTED_PROXY_COUNT`: atrás de um proxy reverso, os limites por IP do login e da
@@ -178,7 +182,8 @@ no navegador.
 - Autenticação por e-mail com confirmação e MFA (django-allauth headless).
 - Pipeline de CI com lockfile, Ruff, mypy, pip-audit, Bandit, gitleaks, testes, gates de cobertura e análise da imagem.
 
-[Não lançado]: https://github.com/ricartefelipe/pactor/compare/v0.3.1...develop
+[Não lançado]: https://github.com/ricartefelipe/pactor/compare/v0.3.2...develop
+[0.3.2]: https://github.com/ricartefelipe/pactor/compare/v0.3.1...v0.3.2
 [0.3.1]: https://github.com/ricartefelipe/pactor/compare/v0.3.0...v0.3.1
 [0.3.0]: https://github.com/ricartefelipe/pactor/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/ricartefelipe/pactor/compare/v0.1.0...v0.2.0

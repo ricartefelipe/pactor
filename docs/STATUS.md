@@ -52,6 +52,7 @@ dependência real; sem essa marca, o item tem código e testes locais.
 
 | Versão | Data | Conteúdo |
 | --- | --- | --- |
+| 0.3.2 | 2026-11-26 | `PACTOR_TRUSTED_PROXY_COUNT` e `PACTOR_LOGIN_FAILED_RATE` para implantação atrás de proxy reverso; 405 em vez de 500 para método sem ação; datas do E2E no fuso da organização |
 | 0.3.1 | 2026-11-23 | Backups, chaves e variantes de `.env` ignorados pelo Git e fora da imagem |
 | 0.3.0 | 2026-11-23 | Nova identidade visual (Inter, ícones, barra lateral, painel com indicadores, entrada em duas colunas) e runbook de backup dos documentos corrigido |
 | 0.2.0 | 2026-11-23 | QR code no TOTP, `verify_documents`, recuperação a um ponto no tempo exercitada, testes no navegador de todas as telas, checks de frontend e ponta a ponta obrigatórios |
