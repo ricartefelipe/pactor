@@ -63,6 +63,17 @@ flowchart TB
   HttpOnly e o token CSRF é lido do cookie e enviado em `X-CSRFToken` nas requisições
   que alteram estado. O login tem duas etapas quando o usuário tem TOTP, e o destino
   pós-login aceita só caminhos internos.
+- **Proxy reverso e limites por IP**: atrás de um proxy que reescreve o
+  `X-Forwarded-For` (Caddy, nginx), `PACTOR_TRUSTED_PROXY_COUNT` diz quantos
+  proxies confiáveis existem, e os limites do allauth e do DRF passam a contar o IP
+  do cliente. Com o padrão 0, o cabeçalho é ignorado, porque o próprio cliente
+  poderia forjá-lo; atrás de um proxy, deixar 0 faz todos os clientes dividirem o
+  limite do IP dele. `PACTOR_LOGIN_FAILED_RATE` ajusta o limite de senhas erradas
+  (padrão `10/m/ip,5/5m/key`): onde as contas são compartilhadas, como numa
+  demonstração pública, o limite por conta (`key`) deixaria qualquer pessoa
+  bloquear a conta de todos.
+- **Métodos**: um método sem ação na rota (por exemplo, `PATCH` numa ação só de
+  leitura) e `OPTIONS` respondem 405 antes da autorização.
 - **Contrato com a API**: os tipos TypeScript são gerados do esquema OpenAPI
   (`openapi-typescript`) e verificados na CI (`npm run check:api`). Mudanças na
   API que quebram o frontend falham na compilação.
