@@ -17,6 +17,7 @@ from django.http.response import HttpResponseBase
 from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import OpenApiParameter
 from oauth2_provider.models import AccessToken
+from rest_framework.exceptions import MethodNotAllowed
 from rest_framework.renderers import JSONRenderer
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -81,11 +82,17 @@ class TenantScopedMixin(APIView):
             authorize(self.principal, permission)
 
     def _required_permission(self, request: Request) -> Permission | None:
-        action = getattr(self, "action", None) or (request.method or "").lower()
+        method = (request.method or "").lower()
+        action = getattr(self, "action", None) or method
         if action in self.action_permissions:
             return self.action_permissions[action]
         if "*" in self.action_permissions:
             return self.action_permissions["*"]
+        if method == "options" or getattr(self, method, None) is None:
+            # Método sem handler na rota (ex.: PATCH numa ação só de leitura) ou OPTIONS,
+            # que a API não oferece: 405, a mesma resposta que o DRF daria no dispatch.
+            raise MethodNotAllowed(request.method or "")
+        # Handler existente sem permissão declarada é erro de programação: falha fechada.
         raise LookupError(f"Ação sem permissão declarada: {type(self).__name__}.{action}")
 
     def idempotent(
