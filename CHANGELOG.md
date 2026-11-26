@@ -9,6 +9,10 @@ Formato baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e
 
 Implantação atrás de proxy reverso: limites por IP contam o cliente, e não o proxy.
 
+**Ao atualizar:** instalações atrás de proxy reverso devem definir `PACTOR_TRUSTED_PROXY_COUNT`
+(1 para um único proxy) antes de subir esta versão. Sem isso, a API passa a contar todas as
+requisições anônimas no IP do proxy, e o limite de 30 por minuto vale para todos juntos.
+
 ### Adicionado
 
 - `PACTOR_TRUSTED_PROXY_COUNT`: atrás de um proxy reverso, os limites por IP do login e da
@@ -20,8 +24,9 @@ Implantação atrás de proxy reverso: limites por IP contam o cliente, e não o
 
 - Sem proxy declarado, a API deixa de identificar o cliente por um `X-Forwarded-For`
   enviado por ele mesmo, que permitia escapar do limite de requisições anônimas.
-- Método sem ação na rota (por exemplo, `PATCH /api/v1/members/directory`) e `OPTIONS`
-  respondiam 500; agora respondem 405.
+- Método sem ação na rota (por exemplo, `PATCH /api/v1/members/directory`), método fora do
+  HTTP e `OPTIONS` respondiam 500; agora respondem 405. `HEAD` em rotas de leitura também
+  respondia 500 e agora responde como `GET`.
 
 ## [0.3.1] - 2026-11-23
 
