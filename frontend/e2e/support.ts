@@ -113,11 +113,18 @@ export async function mailsMatching(text: string): Promise<MailpitSearch["messag
   return body.messages;
 }
 
+/** Fuso das organizações da carga de demonstração, o mesmo do navegador (playwright.config). */
+const ORGANIZATION_TIME_ZONE = "America/Sao_Paulo";
+
+/**
+ * Data civil (AAAA-MM-DD) daqui a `offsetDays` dias no fuso da organização. O processo
+ * dos testes pode rodar em outro fuso (UTC na CI): à noite, o "hoje" dele já é amanhã
+ * para o servidor, e um contrato com início "hoje" ficaria aguardando a vigência.
+ */
 export function isoDate(offsetDays: number): string {
-  const date = new Date();
-  date.setDate(date.getDate() + offsetDays);
-  const local = new Date(date.getTime() - date.getTimezoneOffset() * 60_000);
-  return local.toISOString().slice(0, 10);
+  const date = new Date(Date.now() + offsetDays * 86_400_000);
+  // en-CA formata datas como AAAA-MM-DD.
+  return new Intl.DateTimeFormat("en-CA", { timeZone: ORGANIZATION_TIME_ZONE }).format(date);
 }
 
 /** PDF mínimo e válido (uma página com texto ASCII), com tabela xref correta. */
