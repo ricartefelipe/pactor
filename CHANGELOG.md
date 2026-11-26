@@ -5,6 +5,14 @@ Formato baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e
 
 ## [Não lançado]
 
+## [0.3.2] - 2026-11-26
+
+Implantação atrás de proxy reverso: limites por IP contam o cliente, e não o proxy.
+
+**Ao atualizar:** instalações atrás de proxy reverso devem definir `PACTOR_TRUSTED_PROXY_COUNT`
+(1 para um único proxy) antes de subir esta versão. Sem isso, a API passa a contar todas as
+requisições anônimas no IP do proxy, e o limite de 30 por minuto vale para todos juntos.
+
 ### Adicionado
 
 - `PACTOR_TRUSTED_PROXY_COUNT`: atrás de um proxy reverso, os limites por IP do login e da
@@ -16,8 +24,9 @@ Formato baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e
 
 - Sem proxy declarado, a API deixa de identificar o cliente por um `X-Forwarded-For`
   enviado por ele mesmo, que permitia escapar do limite de requisições anônimas.
-- Método sem ação na rota (por exemplo, `PATCH /api/v1/members/directory`) e `OPTIONS`
-  respondiam 500; agora respondem 405.
+- Método sem ação na rota (por exemplo, `PATCH /api/v1/members/directory`), método fora do
+  HTTP e `OPTIONS` respondiam 500; agora respondem 405. `HEAD` em rotas de leitura também
+  respondia 500 e agora responde como `GET`.
 
 ## [0.3.1] - 2026-11-23
 
@@ -178,7 +187,8 @@ no navegador.
 - Autenticação por e-mail com confirmação e MFA (django-allauth headless).
 - Pipeline de CI com lockfile, Ruff, mypy, pip-audit, Bandit, gitleaks, testes, gates de cobertura e análise da imagem.
 
-[Não lançado]: https://github.com/ricartefelipe/pactor/compare/v0.3.1...develop
+[Não lançado]: https://github.com/ricartefelipe/pactor/compare/v0.3.2...develop
+[0.3.2]: https://github.com/ricartefelipe/pactor/compare/v0.3.1...v0.3.2
 [0.3.1]: https://github.com/ricartefelipe/pactor/compare/v0.3.0...v0.3.1
 [0.3.0]: https://github.com/ricartefelipe/pactor/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/ricartefelipe/pactor/compare/v0.1.0...v0.2.0

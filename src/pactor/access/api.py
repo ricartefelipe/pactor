@@ -83,14 +83,20 @@ class TenantScopedMixin(APIView):
 
     def _required_permission(self, request: Request) -> Permission | None:
         method = (request.method or "").lower()
+        if method not in self.http_method_names or method == "options":
+            # Método fora do HTTP (ex.: LIST, que coincidiria com um atributo da view) ou
+            # OPTIONS, que a API não oferece: 405, como o DRF responderia no dispatch.
+            raise MethodNotAllowed(request.method or "")
+        if method == "head":
+            # O Django atende HEAD com o handler de GET; a permissão é a mesma.
+            method = "get"
         action = getattr(self, "action", None) or method
         if action in self.action_permissions:
             return self.action_permissions[action]
         if "*" in self.action_permissions:
             return self.action_permissions["*"]
-        if method == "options" or getattr(self, method, None) is None:
-            # Método sem handler na rota (ex.: PATCH numa ação só de leitura) ou OPTIONS,
-            # que a API não oferece: 405, a mesma resposta que o DRF daria no dispatch.
+        if getattr(self, method, None) is None:
+            # Método sem handler na rota (ex.: PATCH numa ação só de leitura).
             raise MethodNotAllowed(request.method or "")
         # Handler existente sem permissão declarada é erro de programação: falha fechada.
         raise LookupError(f"Ação sem permissão declarada: {type(self).__name__}.{action}")

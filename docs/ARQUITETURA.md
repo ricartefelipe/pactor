@@ -68,12 +68,15 @@ flowchart TB
   proxies confiáveis existem, e os limites do allauth e do DRF passam a contar o IP
   do cliente. Com o padrão 0, o cabeçalho é ignorado, porque o próprio cliente
   poderia forjá-lo; atrás de um proxy, deixar 0 faz todos os clientes dividirem o
-  limite do IP dele. `PACTOR_LOGIN_FAILED_RATE` ajusta o limite de senhas erradas
+  limite do IP dele. O número precisa valer para todo caminho até a aplicação: se
+  houver uma CDN e um proxy (2), um acesso direto ao proxy chega com uma entrada só
+  e o login é recusado. `PACTOR_LOGIN_FAILED_RATE` ajusta o limite de senhas erradas
   (padrão `10/m/ip,5/5m/key`): onde as contas são compartilhadas, como numa
   demonstração pública, o limite por conta (`key`) deixaria qualquer pessoa
-  bloquear a conta de todos.
+  bloquear a conta de todos. Valor vazio ou fora do formato impede a inicialização.
 - **Métodos**: um método sem ação na rota (por exemplo, `PATCH` numa ação só de
-  leitura) e `OPTIONS` respondem 405 antes da autorização.
+  leitura), um método fora do HTTP e `OPTIONS` respondem 405 antes da autorização;
+  `HEAD` usa a permissão de `GET`.
 - **Contrato com a API**: os tipos TypeScript são gerados do esquema OpenAPI
   (`openapi-typescript`) e verificados na CI (`npm run check:api`). Mudanças na
   API que quebram o frontend falham na compilação.

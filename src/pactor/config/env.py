@@ -8,6 +8,7 @@ que só seriam percebidas em produção.
 from __future__ import annotations
 
 import os
+import re
 from collections.abc import Mapping
 
 _TRUE = frozenset({"1", "true", "yes", "on"})
@@ -45,6 +46,24 @@ def env_int(
         return int(raw)
     except ValueError as exc:
         raise ConfigurationError(f"{name} deve ser inteiro, recebido: {raw!r}") from exc
+
+
+_RATE = re.compile(r"\d+/(\d+(\.\d+)?)?[smhd](/(ip|key|user))?")
+
+
+def env_rate_limits(name: str, default: str, *, environ: Mapping[str, str] | None = None) -> str:
+    """Limites no formato do allauth (``10/m/ip,5/5m/key``), conferidos na inicialização.
+
+    Vazio desligaria o limite em silêncio, e um erro de digitação só apareceria no
+    primeiro login recusado; os dois são recusados aqui.
+    """
+    raw = env_str(name, default, environ=environ).strip()
+    parts = [part.strip() for part in raw.split(",")]
+    if not raw or not all(_RATE.fullmatch(part) for part in parts):
+        raise ConfigurationError(
+            f"{name} deve listar limites como quantidade/duração[/ip|key|user], recebido: {raw!r}"
+        )
+    return ",".join(parts)
 
 
 def env_list(
